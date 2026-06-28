@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoanDocs Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { brand: '#1a56db' } } } }
+</script>
+<style>
+  .sidebar-link { @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-all; }
+  .sidebar-link.active { @apply bg-white/20 text-white font-semibold; }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<!-- Login Screen -->
+<div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-2">🏦</div>
+      <h1 class="text-2xl font-bold text-gray-800">LoanDocs Admin</h1>
+      <p class="text-gray-500 text-sm mt-1">Sign in to continue</p>
+    </div>
+    <div id="loginError" class="hidden bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4"></div>
+    <input id="loginUser" type="text" placeholder="Username" value="admin"
+      class="w-full border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <input id="loginPass" type="password" placeholder="Password" value="admin123"
+      class="w-full border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <button onclick="doLogin()"
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+      Sign In
+    </button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="mainApp" class="hidden flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-gradient-to-b from-blue-900 to-blue-800 flex flex-col py-6 px-3 flex-shrink-0">
+    <div class="text-center mb-8 px-3">
+      <div class="text-3xl">🏦</div>
+      <h1 class="text-white font-bold text-lg mt-1">LoanDocs</h1>
+      <p class="text-blue-300 text-xs">Admin Panel</p>
+    </div>
+    <nav class="flex-1 space-y-1">
+      <a href="#" class="sidebar-link active" onclick="showPage('dashboard')">📊 Dashboard</a>
+      <a href="#" class="sidebar-link" onclick="showPage('loanTypes')">📋 Loan Types</a>
+      <a href="#" class="sidebar-link" onclick="showPage('docMaster')">📄 Document Master</a>
+      <a href="#" class="sidebar-link" onclick="showPage('applications')">📁 Applications</a>
+      <a href="#" class="sidebar-link" onclick="showPage('apiKeys')">🔑 API Keys</a>
+    </nav>
+    <button onclick="logout()"
+      class="mt-4 text-blue-300 hover:text-white text-sm px-4 py-2 hover:bg-white/10 rounded-lg transition">
+      🚪 Logout
+    </button>
+  </aside>
+
+  <!-- Content -->
+  <main class="flex-1 overflow-y-auto">
+
+    <!-- Dashboard -->
+    <div id="page-dashboard" class="p-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
+      <div id="statsGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-xl p-5 shadow-sm border">
+          <p class="text-gray-500 text-sm">Total Applications</p>
+          <p id="stat-total" class="text-3xl font-bold text-blue-600 mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border">
+          <p class="text-gray-500 text-sm">Complete</p>
+          <p id="stat-complete" class="text-3xl font-bold text-green-600 mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border">
+          <p class="text-gray-500 text-sm">Incomplete</p>
+          <p id="stat-incomplete" class="text-3xl font-bold text-orange-500 mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border">
+          <p class="text-gray-500 text-sm">Exported PDFs</p>
+          <p id="stat-exported" class="text-3xl font-bold text-purple-600 mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border">
+          <p class="text-gray-500 text-sm">Total Documents</p>
+          <p id="stat-docs" class="text-3xl font-bold text-gray-700 mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border">
+          <p class="text-gray-500 text-sm">Loan Types Active</p>
+          <p id="stat-ltypes" class="text-3xl font-bold text-blue-800 mt-1">—</p>
+        </div>
+      </div>
+
+      <!-- Quick API guide -->
+      <div class="bg-white rounded-xl p-6 shadow-sm border">
+        <h3 class="font-bold text-gray-700 mb-3">Quick API Reference</h3>
+        <div class="space-y-2 font-mono text-sm">
+          <div class="bg-gray-50 rounded p-3">
+            <span class="text-green-600 font-bold">POST</span>
+            <span class="text-gray-600"> /api/v1/applications/create</span>
+            <p class="text-gray-400 text-xs mt-1">Create new application → get app_id</p>
+          </div>
+          <div class="bg-gray-50 rounded p-3">
+            <span class="text-green-600 font-bold">POST</span>
+            <span class="text-gray-600"> /api/v1/upload</span>
+            <p class="text-gray-400 text-xs mt-1">Upload documents (multipart/form-data)</p>
+          </div>
+          <div class="bg-gray-50 rounded p-3">
+            <span class="text-blue-600 font-bold">GET</span>
+            <span class="text-gray-600"> /api/v1/applications/{id}</span>
+            <p class="text-gray-400 text-xs mt-1">Get status + extracted data</p>
+          </div>
+          <div class="bg-gray-50 rounded p-3">
+            <span class="text-blue-600 font-bold">GET</span>
+            <span class="text-gray-600"> /api/v1/applications/{id}/pdf</span>
+            <p class="text-gray-400 text-xs mt-1">Download final PDF</p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-3">All endpoints require: <code class="bg-gray-100 px-1 rounded">X-API-Key: your_key</code></p>
+      </div>
+    </div>
+
+    <!-- Loan Types -->
+    <div id="page-loanTypes" class="p-8 hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Loan Types</h2>
+        <button onclick="openLoanTypeModal()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          + Add Loan Type
+        </button>
+      </div>
+      <div id="loanTypesList" class="space-y-4"></div>
+    </div>
+
+    <!-- Document Master -->
+    <div id="page-docMaster" class="p-8 hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Document Master</h2>
+        <button onclick="openDocMasterModal()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          + Add Document Type
+        </button>
+      </div>
+      <div id="docMasterList" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">#</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Key</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Display Name</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Fields</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Status</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="docMasterBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Applications -->
+    <div id="page-applications" class="p-8 hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Applications</h2>
+        <div class="flex gap-3">
+          <select id="filterStatus" onchange="loadApplications()"
+            class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Status</option>
+            <option value="incomplete">Incomplete</option>
+            <option value="complete">Complete</option>
+            <option value="exported">Exported</option>
+          </select>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">App ID</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Applicant</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Loan Type</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Status</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Created</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-600">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="applicationsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- API Keys -->
+    <div id="page-apiKeys" class="p-8 hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">API Keys</h2>
+        <button onclick="createApiKey()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          + Generate Key
+        </button>
+      </div>
+      <div id="apiKeysList" class="space-y-3"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-6 border-b">
+      <h3 id="modalTitle" class="text-lg font-bold text-gray-800"></h3>
+      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div id="modalBody" class="p-6"></div>
+  </div>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem('ld_token') || '';
+
+// ─── AUTH ────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('loginUser').value;
+  const p = document.getElementById('loginPass').value;
+  const fd = new FormData();
+  fd.append('username', u); fd.append('password', p);
+  const r = await fetch('/admin/api/auth/login', { method: 'POST', body: fd });
+  if (r.ok) {
+    const d = await r.json();
+    TOKEN = d.access_token;
+    localStorage.setItem('ld_token', TOKEN);
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('mainApp').classList.add('flex');
+    loadDashboard();
+  } else {
+    const e = document.getElementById('loginError');
+    e.textContent = 'Invalid username or password';
+    e.classList.remove('hidden');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('ld_token');
+  location.reload();
+}
+
+async function api(path, opts={}) {
+  const r = await fetch('/admin/api' + path, {
+    ...opts,
+    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  });
+  if (r.status === 401) { logout(); return null; }
+  return r.json();
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('[id^=page-]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('page-' + name).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (name === 'dashboard')    loadDashboard();
+  if (name === 'loanTypes')    loadLoanTypes();
+  if (name === 'docMaster')    loadDocMaster();
+  if (name === 'applications') loadApplications();
+  if (name === 'apiKeys')      loadApiKeys();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────
+async function loadDashboard() {
+  const d = await api('/dashboard');
+  if (!d) return;
+  document.getElementById('stat-total').textContent      = d.total_applications;
+  document.getElementById('stat-complete').textContent   = d.complete;
+  document.getElementById('stat-incomplete').textContent = d.incomplete;
+  document.getElementById('stat-exported').textContent   = d.exported;
+  document.getElementById('stat-docs').textContent       = d.total_documents;
+  document.getElementById('stat-ltypes').textContent     = d.loan_types;
+}
+
+// ─── LOAN TYPES ──────────────────────────────────────────────────
+async function loadLoanTypes() {
+  const data = await api('/loan-types');
+  const el = document.getElementById('loanTypesList');
+  el.innerHTML = (data||[]).map(lt => `
+    <div class="bg-white rounded-xl border shadow-sm p-5">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="font-bold text-gray-800">${lt.name}</span>
+          <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono">${lt.code}</span>
+          ${lt.is_active ? '<span class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Active</span>' : '<span class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactive</span>'}
+          <p class="text-gray-500 text-sm mt-1">${lt.description || ''}</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="editLoanType(${lt.id},'${lt.name}','${lt.description||''}',${JSON.stringify(lt.required_docs).replace(/"/g,'&quot;')})"
+            class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">Edit</button>
+          <button onclick="toggleLoanType(${lt.id},${!lt.is_active})"
+            class="text-sm ${lt.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} px-3 py-1.5 rounded-lg transition">
+            ${lt.is_active ? 'Deactivate' : 'Activate'}
+          </button>
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        ${(lt.required_docs||[]).map(dk=>`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded font-mono">${dk}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function openLoanTypeModal(data=null) {
+  document.getElementById('modalTitle').textContent = data ? 'Edit Loan Type' : 'Add Loan Type';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="space-y-4">
+      <div><label class="text-sm font-medium text-gray-700">Name</label>
+        <input id="lt-name" value="${data?.name||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+      ${!data ? `<div><label class="text-sm font-medium text-gray-700">Code (unique, no spaces)</label>
+        <input id="lt-code" placeholder="home_loan" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"></div>` : ''}
+      <div><label class="text-sm font-medium text-gray-700">Description</label>
+        <input id="lt-desc" value="${data?.description||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+      <div><label class="text-sm font-medium text-gray-700">Required Documents (one per line, use doc_key)</label>
+        <textarea id="lt-docs" rows="6" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm">${(data?.required_docs||[]).join('\n')}</textarea></div>
+      <button onclick="saveLoanType(${data?.id||'null'})"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">Save</button>
+    </div>`;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function editLoanType(id, name, desc, docs) {
+  openLoanTypeModal({ id, name, description: desc, required_docs: docs });
+}
+
+async function saveLoanType(id) {
+  const name  = document.getElementById('lt-name').value.trim();
+  const desc  = document.getElementById('lt-desc').value.trim();
+  const docs  = document.getElementById('lt-docs').value.trim().split('\n').map(s=>s.trim()).filter(Boolean);
+  const code  = id === null ? document.getElementById('lt-code').value.trim() : undefined;
+  const payload = { name, description: desc, required_docs: docs };
+  if (code) payload.code = code;
+  let r;
+  if (id === null) r = await api('/loan-types', { method:'POST', body: JSON.stringify(payload) });
+  else             r = await api(`/loan-types/${id}`, { method:'PUT', body: JSON.stringify(payload) });
+  closeModal();
+  loadLoanTypes();
+}
+
+async function toggleLoanType(id, active) {
+  await api(`/loan-types/${id}`, { method:'PUT', body: JSON.stringify({ is_active: active }) });
+  loadLoanTypes();
+}
+
+// ─── DOC MASTER ──────────────────────────────────────────────────
+async function loadDocMaster() {
+  const data = await api('/document-master');
+  const tbody = document.getElementById('docMasterBody');
+  tbody.innerHTML = (data||[]).map(d => `
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-5 py-3 text-gray-500">${d.serial_order}</td>
+      <td class="px-5 py-3 font-mono text-xs text-gray-600">${d.doc_key}</td>
+      <td class="px-5 py-3 font-medium">${d.display_name}</td>
+      <td class="px-5 py-3 text-xs text-gray-500">${(d.extraction_fields||[]).join(', ')}</td>
+      <td class="px-5 py-3">
+        <span class="text-xs px-2 py-1 rounded ${d.is_active ? 'bg-green-100 text-green-700':'bg-red-100 text-red-600'}">${d.is_active?'Active':'Inactive'}</span>
+      </td>
+      <td class="px-5 py-3">
+        <button onclick="editDocMaster(${d.id},'${d.display_name}','${d.description||''}',${JSON.stringify(d.extraction_fields).replace(/"/g,'&quot;')},${d.serial_order})"
+          class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded transition">Edit</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openDocMasterModal(data=null) {
+  document.getElementById('modalTitle').textContent = data ? 'Edit Document Type' : 'Add Document Type';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="space-y-4">
+      ${!data ? `<div><label class="text-sm font-medium text-gray-700">Doc Key (unique, snake_case)</label>
+        <input id="dm-key" placeholder="salary_slip_3" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm"></div>` : ''}
+      <div><label class="text-sm font-medium text-gray-700">Display Name</label>
+        <input id="dm-name" value="${data?.display_name||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+      <div><label class="text-sm font-medium text-gray-700">Description</label>
+        <input id="dm-desc" value="${data?.description||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+      <div><label class="text-sm font-medium text-gray-700">Serial Order (PDF order)</label>
+        <input id="dm-order" type="number" value="${data?.serial_order||99}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+      <div><label class="text-sm font-medium text-gray-700">Extraction Fields (one per line)</label>
+        <textarea id="dm-fields" rows="5" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm">${(data?.extraction_fields||[]).join('\n')}</textarea></div>
+      <button onclick="saveDocMaster(${data?.id||'null'})"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">Save</button>
+    </div>`;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function editDocMaster(id, name, desc, fields, order) {
+  openDocMasterModal({ id, display_name: name, description: desc, extraction_fields: fields, serial_order: order });
+}
+
+async function saveDocMaster(id) {
+  const name   = document.getElementById('dm-name').value.trim();
+  const desc   = document.getElementById('dm-desc').value.trim();
+  const order  = parseInt(document.getElementById('dm-order').value) || 99;
+  const fields = document.getElementById('dm-fields').value.trim().split('\n').map(s=>s.trim()).filter(Boolean);
+  const key    = id === null ? document.getElementById('dm-key').value.trim() : undefined;
+  const payload = { display_name: name, description: desc, serial_order: order, extraction_fields: fields };
+  if (key) payload.doc_key = key;
+  if (id === null) await api('/document-master', { method:'POST', body: JSON.stringify(payload) });
+  else             await api(`/document-master/${id}`, { method:'PUT', body: JSON.stringify(payload) });
+  closeModal();
+  loadDocMaster();
+}
+
+// ─── APPLICATIONS ────────────────────────────────────────────────
+async function loadApplications() {
+  const status = document.getElementById('filterStatus')?.value || '';
+  const data = await api(`/applications?limit=100${status ? '&status='+status : ''}`);
+  const tbody = document.getElementById('applicationsBody');
+  const statusColors = { incomplete:'bg-orange-100 text-orange-700', complete:'bg-green-100 text-green-700', exported:'bg-purple-100 text-purple-700' };
+  tbody.innerHTML = (data?.applications||[]).map(a => `
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-5 py-3 font-mono text-sm font-medium text-blue-700">${a.id}</td>
+      <td class="px-5 py-3">${a.applicant_name || '—'}</td>
+      <td class="px-5 py-3 text-sm text-gray-600">${a.loan_type}</td>
+      <td class="px-5 py-3">
+        <span class="text-xs px-2 py-1 rounded font-medium ${statusColors[a.status]||'bg-gray-100 text-gray-600'}">${a.status}</span>
+      </td>
+      <td class="px-5 py-3 text-sm text-gray-500">${new Date(a.created_at).toLocaleDateString('en-IN')}</td>
+      <td class="px-5 py-3">
+        <button onclick="deleteApp('${a.id}')"
+          class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded transition">Delete</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="text-center py-10 text-gray-400">No applications found</td></tr>';
+}
+
+async function deleteApp(id) {
+  if (!confirm(`Delete application ${id}? This cannot be undone.`)) return;
+  await api(`/applications/${id}`, { method:'DELETE' });
+  loadApplications();
+}
+
+// ─── API KEYS ────────────────────────────────────────────────────
+async function loadApiKeys() {
+  const data = await api('/api-keys');
+  const el = document.getElementById('apiKeysList');
+  el.innerHTML = (data||[]).map(k => `
+    <div class="bg-white rounded-xl border shadow-sm p-5 flex items-center justify-between">
+      <div>
+        <p class="font-semibold text-gray-800">${k.name}</p>
+        <p class="font-mono text-sm text-gray-500 mt-0.5">${k.api_key}</p>
+        <p class="text-xs text-gray-400 mt-1">Created ${new Date(k.created_at).toLocaleDateString('en-IN')}</p>
+      </div>
+      <div class="flex gap-2">
+        <span class="text-xs px-2 py-1 rounded ${k.is_active ? 'bg-green-100 text-green-700':'bg-red-100 text-red-600'}">${k.is_active?'Active':'Revoked'}</span>
+        ${k.is_active ? `<button onclick="revokeKey(${k.id})" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded transition">Revoke</button>` : ''}
+      </div>
+    </div>
+  `).join('') || '<p class="text-gray-400">No API keys yet</p>';
+}
+
+async function createApiKey() {
+  const name = prompt('Enter a name for this API key (e.g. Mobile App, Web Portal):');
+  if (!name) return;
+  const r = await api('/api-keys', { method:'POST', body: JSON.stringify({ name }) });
+  if (r?.api_key) {
+    alert(`✅ API Key created!\n\n${r.api_key}\n\n⚠️ Save this key — it won't be shown again!`);
+  }
+  loadApiKeys();
+}
+
+async function revokeKey(id) {
+  if (!confirm('Revoke this API key? Apps using it will stop working.')) return;
+  await api(`/api-keys/${id}`, { method:'DELETE' });
+  loadApiKeys();
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+// ─── INIT ────────────────────────────────────────────────────────
+if (TOKEN) {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('mainApp').classList.add('flex');
+  loadDashboard();
+}
+</script>
+</body>
+</html>
