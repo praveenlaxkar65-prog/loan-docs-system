@@ -51,6 +51,7 @@
       <a href="#" class="sidebar-link" onclick="showPage('docMaster')">📄 Document Master</a>
       <a href="#" class="sidebar-link" onclick="showPage('applications')">📁 Applications</a>
       <a href="#" class="sidebar-link" onclick="showPage('apiKeys')">🔑 API Keys</a>
+      <a href="#" class="sidebar-link" onclick="showPage('settings')">⚙️ AI Providers</a>
     </nav>
     <button onclick="logout()"
       class="mt-4 text-blue-300 hover:text-white text-sm px-4 py-2 hover:bg-white/10 rounded-lg transition">
@@ -201,6 +202,19 @@
       <div id="apiKeysList" class="space-y-3"></div>
     </div>
 
+
+    <!-- AI Providers -->
+    <div id="page-settings" class="p-8 hidden">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800">AI Providers</h2>
+          <p class="text-sm text-gray-500 mt-1">Claude, OpenAI, Gemini, OpenRouter ya custom endpoint — sab yahi se add karo.</p>
+        </div>
+        <button onclick="openAIProviderModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Add Provider</button>
+      </div>
+      <div id="aiProvidersList" class="space-y-3"></div>
+    </div>
+
   </main>
 </div>
 
@@ -265,6 +279,7 @@ function showPage(name) {
   if (name === 'docMaster')    loadDocMaster();
   if (name === 'applications') loadApplications();
   if (name === 'apiKeys')      loadApiKeys();
+  if (name === 'settings')     loadAIProviders();
 }
 
 // ─── DASHBOARD ───────────────────────────────────────────────────
@@ -471,6 +486,65 @@ async function revokeKey(id) {
   await api(`/api-keys/${id}`, { method:'DELETE' });
   loadApiKeys();
 }
+
+
+// ─── AI PROVIDERS ─────────────────────────────────────────────────
+async function loadAIProviders() {
+  const data = await api('/ai-providers');
+  const el = document.getElementById('aiProvidersList');
+  el.innerHTML = (data||[]).map(p => `
+    <div class="bg-white rounded-xl border shadow-sm p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-gray-800">${p.provider_name}</span>
+            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-mono">${p.request_format}</span>
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">${p.provider_type}</span>
+            <span class="text-xs px-2 py-0.5 rounded ${p.is_active ? 'bg-green-100 text-green-700':'bg-red-100 text-red-600'}">${p.is_active?'Active':'Inactive'}</span>
+          </div>
+          <p class="text-sm text-gray-600 mt-1"><b>Model:</b> <span class="font-mono">${p.model_name}</span></p>
+          <p class="text-xs text-gray-500 mt-1 break-all"><b>URL:</b> ${p.base_url || 'default for format'}</p>
+          <p class="text-xs text-gray-500 mt-1"><b>Priority:</b> ${p.priority} · <b>Key:</b> ${p.has_api_key ? p.api_key_masked : 'not saved'}</p>
+          ${p.notes ? `<p class="text-xs text-gray-400 mt-1">${p.notes}</p>` : ''}
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <button onclick="activateAIProvider(${p.id})" class="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1 rounded transition">Activate</button>
+          <button onclick='openAIProviderModal(${JSON.stringify(p).replace(/'/g,"&#39;")})' class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded transition">Edit</button>
+          <button onclick="deleteAIProvider(${p.id})" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded transition">Delete</button>
+        </div>
+      </div>
+    </div>`).join('') || '<p class="text-gray-400">No AI providers yet. Add one.</p>';
+}
+
+function openAIProviderModal(p=null) {
+  document.getElementById('modalTitle').textContent = p ? 'Edit AI Provider' : 'Add AI Provider';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="space-y-4">
+      <div><label class="text-sm font-medium text-gray-700">Provider Name</label><input id="aip-name" value="${p?.provider_name||''}" placeholder="OpenRouter / Gemini / Claude" class="mt-1 w-full border rounded-lg px-3 py-2"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-medium text-gray-700">Provider Type</label><select id="aip-type" class="mt-1 w-full border rounded-lg px-3 py-2"><option value="vision">vision</option><option value="text">text</option><option value="both">both</option></select></div>
+        <div><label class="text-sm font-medium text-gray-700">Request Format</label><select id="aip-format" class="mt-1 w-full border rounded-lg px-3 py-2"><option value="openai">openai</option><option value="anthropic">anthropic</option><option value="gemini">gemini</option><option value="custom">custom</option></select></div>
+      </div>
+      <div><label class="text-sm font-medium text-gray-700">Model Name</label><input id="aip-model" value="${p?.model_name||''}" placeholder="gpt-4o-mini / gemini-2.5-flash / claude..." class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm"></div>
+      <div><label class="text-sm font-medium text-gray-700">Base URL</label><input id="aip-url" value="${p?.base_url||''}" placeholder="OpenAI-compatible chat/completions URL, Gemini generateContent URL, etc." class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm"></div>
+      <div><label class="text-sm font-medium text-gray-700">API Key</label><input id="aip-key" type="password" placeholder="${p?.has_api_key ? 'Blank = keep existing key' : 'Paste API key'}" class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm"><p class="text-xs text-gray-500 mt-1">Blank chhodne par existing key same rahegi.</p></div>
+      <div class="grid grid-cols-2 gap-3"><div><label class="text-sm font-medium text-gray-700">Priority</label><input id="aip-priority" type="number" value="${p?.priority||1}" class="mt-1 w-full border rounded-lg px-3 py-2"></div><label class="flex items-end gap-2 text-sm text-gray-700 pb-2"><input id="aip-active" type="checkbox" ${p?.is_active ? 'checked' : ''}> Active</label></div>
+      <div><label class="text-sm font-medium text-gray-700">Notes</label><input id="aip-notes" value="${p?.notes||''}" class="mt-1 w-full border rounded-lg px-3 py-2"></div>
+      <button onclick="saveAIProvider(${p?.id||'null'})" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">Save Provider</button>
+    </div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  if (p) { document.getElementById('aip-type').value=p.provider_type; document.getElementById('aip-format').value=p.request_format; }
+}
+
+async function saveAIProvider(id) {
+  const payload = {provider_name: document.getElementById('aip-name').value.trim(), provider_type: document.getElementById('aip-type').value, request_format: document.getElementById('aip-format').value, model_name: document.getElementById('aip-model').value.trim(), base_url: document.getElementById('aip-url').value.trim(), api_key: document.getElementById('aip-key').value.trim(), priority: parseInt(document.getElementById('aip-priority').value)||1, is_active: document.getElementById('aip-active').checked, notes: document.getElementById('aip-notes').value.trim()};
+  if (!payload.provider_name || !payload.model_name) { alert('Provider name and model required'); return; }
+  if (id === null) await api('/ai-providers', {method:'POST', body: JSON.stringify(payload)});
+  else await api(`/ai-providers/${id}`, {method:'PUT', body: JSON.stringify(payload)});
+  closeModal(); loadAIProviders();
+}
+async function activateAIProvider(id) { await api(`/ai-providers/${id}/activate`, {method:'POST'}); loadAIProviders(); }
+async function deleteAIProvider(id) { if (!confirm('Delete this AI provider?')) return; await api(`/ai-providers/${id}`, {method:'DELETE'}); loadAIProviders(); }
 
 // ─── MODAL ───────────────────────────────────────────────────────
 function closeModal() { document.getElementById('modal').classList.add('hidden'); }

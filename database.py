@@ -85,6 +85,56 @@ class Document(Base):
         return json.loads(self.extracted_fields or "{}")
 
 
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    key         = Column(String, unique=True, nullable=False)
+    value       = Column(Text, default="")
+    is_secret   = Column(Boolean, default=False)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+def get_setting(db, key: str, default: str = "") -> str:
+    row = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+    return row.value if row and row.value is not None else default
+
+
+def set_setting(db, key: str, value: str, is_secret: bool = False):
+    row = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+    if row:
+        row.value = value
+        row.is_secret = is_secret
+    else:
+        row = SystemSetting(key=key, value=value, is_secret=is_secret)
+        db.add(row)
+    db.commit()
+    return row
+
+
+class AIProvider(Base):
+    __tablename__ = "ai_providers"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    provider_name  = Column(String, nullable=False)
+    provider_type  = Column(String, default="vision")
+    request_format = Column(String, default="openai")
+    api_key        = Column(Text, default="")
+    base_url       = Column(Text, default="")
+    model_name     = Column(String, default="")
+    priority       = Column(Integer, default=1)
+    is_active      = Column(Boolean, default=True)
+    notes          = Column(Text, default="")
+    created_at     = Column(DateTime, default=datetime.utcnow)
+    updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def masked_key(self):
+        key = self.api_key or ""
+        if not key:
+            return ""
+        return key[:8] + "..." + key[-4:] if len(key) > 12 else "saved"
+
+
 class ApiUser(Base):
     __tablename__ = "api_users"
 
@@ -119,6 +169,24 @@ def init_db():
 
 def _seed_defaults(db):
     """Seed loan types and document master if empty."""
+
+
+
+    # ── Legacy System Settings table is kept for backward compatibility only.
+
+    # ── AI Providers ──────────────────────────────────────────────
+    if db.query(AIProvider).count() == 0:
+        db.add(AIProvider(
+            provider_name="OpenRouter Vision",
+            provider_type="vision",
+            request_format="openai",
+            api_key="",
+            base_url="https://openrouter.ai/api/v1/chat/completions",
+            model_name="google/gemini-2.5-flash",
+            priority=1,
+            is_active=False,
+            notes="Example only. Add your key and activate from Admin → AI Providers."
+        ))
 
     # ── Document Master ──────────────────────────────────────────────
     if db.query(DocumentMaster).count() == 0:

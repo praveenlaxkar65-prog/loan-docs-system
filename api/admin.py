@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from database import get_db, LoanType, DocumentMaster, Application, Document, ApiUser
+from database import get_db, LoanType, DocumentMaster, Application, Document, ApiUser, AIProvider
 from config import SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
 
 router = APIRouter(prefix="/admin/api", tags=["Admin"])
@@ -216,6 +216,86 @@ async def update_doc_master(
     db.commit()
     return {"success": True, "message": "Updated"}
 
+
+
+# ──────────────────────────────────────────────────────────────────
+# UNIVERSAL AI PROVIDERS
+# ──────────────────────────────────────────────────────────────────
+
+class AIProviderCreate(BaseModel):
+    provider_name: str
+    provider_type: str = "vision"
+    request_format: str = "openai"
+    api_key: str = ""
+    base_url: str = ""
+    model_name: str
+    priority: int = 1
+    is_active: bool = True
+    notes: str = ""
+
+class AIProviderUpdate(BaseModel):
+    provider_name: Optional[str] = None
+    provider_type: Optional[str] = None
+    request_format: Optional[str] = None
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    model_name: Optional[str] = None
+    priority: Optional[int] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = None
+
+def _provider_dict(p: AIProvider):
+    return {"id": p.id, "provider_name": p.provider_name, "provider_type": p.provider_type, "request_format": p.request_format, "base_url": p.base_url, "model_name": p.model_name, "priority": p.priority, "is_active": p.is_active, "notes": p.notes, "has_api_key": bool(p.api_key), "api_key_masked": p.masked_key(), "created_at": p.created_at.isoformat() if p.created_at else None}
+
+@router.get("/ai-providers")
+async def list_ai_providers(db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    return [_provider_dict(p) for p in db.query(AIProvider).order_by(AIProvider.priority.asc(), AIProvider.id.asc()).all()]
+
+@router.post("/ai-providers")
+async def create_ai_provider(data: AIProviderCreate, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    fmt = data.request_format.strip().lower()
+    if fmt not in {"anthropic", "openai", "gemini", "custom"}:
+        raise HTTPException(status_code=400, detail="request_format must be anthropic/openai/gemini/custom")
+    p = AIProvider(provider_name=data.provider_name.strip(), provider_type=data.provider_type.strip().lower() or "vision", request_format=fmt, api_key=data.api_key.strip(), base_url=data.base_url.strip(), model_name=data.model_name.strip(), priority=data.priority, is_active=data.is_active, notes=data.notes.strip())
+    db.add(p); db.commit()
+    return {"success": True, "id": p.id, "message": "AI provider created"}
+
+@router.put("/ai-providers/{provider_id}")
+async def update_ai_provider(provider_id: int, data: AIProviderUpdate, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    p = db.query(AIProvider).filter(AIProvider.id == provider_id).first()
+    if not p: raise HTTPException(status_code=404, detail="AI provider not found")
+    if data.provider_name is not None: p.provider_name = data.provider_name.strip()
+    if data.provider_type is not None: p.provider_type = data.provider_type.strip().lower() or "vision"
+    if data.request_format is not None:
+        fmt = data.request_format.strip().lower()
+        if fmt not in {"anthropic", "openai", "gemini", "custom"}: raise HTTPException(status_code=400, detail="request_format must be anthropic/openai/gemini/custom")
+        p.request_format = fmt
+    if data.api_key is not None:
+        if data.api_key == "__CLEAR__": p.api_key = ""
+        elif data.api_key.strip(): p.api_key = data.api_key.strip()
+    if data.base_url is not None: p.base_url = data.base_url.strip()
+    if data.model_name is not None: p.model_name = data.model_name.strip()
+    if data.priority is not None: p.priority = data.priority
+    if data.is_active is not None: p.is_active = data.is_active
+    if data.notes is not None: p.notes = data.notes.strip()
+    db.commit()
+    return {"success": True, "message": "AI provider updated"}
+
+@router.delete("/ai-providers/{provider_id}")
+async def delete_ai_provider(provider_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    p = db.query(AIProvider).filter(AIProvider.id == provider_id).first()
+    if not p: raise HTTPException(status_code=404, detail="AI provider not found")
+    db.delete(p); db.commit()
+    return {"success": True, "message": "AI provider deleted"}
+
+@router.post("/ai-providers/{provider_id}/activate")
+async def activate_ai_provider(provider_id: int, exclusive: bool = True, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    p = db.query(AIProvider).filter(AIProvider.id == provider_id).first()
+    if not p: raise HTTPException(status_code=404, detail="AI provider not found")
+    if exclusive:
+        db.query(AIProvider).filter(AIProvider.provider_type.in_([p.provider_type, "both", "vision"])).update({"is_active": False})
+    p.is_active = True; db.commit()
+    return {"success": True, "message": f"{p.provider_name} activated"}
 
 # ──────────────────────────────────────────────────────────────────
 # APPLICATIONS (Admin view)

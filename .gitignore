@@ -1,0 +1,8 @@
+.env
+*.env
+database.db
+loandocs.db
+*.db
+__pycache__/
+*.pyc
+*.zip

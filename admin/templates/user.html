@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoanDocs User Panel</title>
+  <style>
+    :root { --bg:#f5f7fb; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --ok:#16a34a; --bad:#dc2626; --line:#e5e7eb; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
+    header { background:#111827; color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    header h1 { margin:0; font-size:22px; }
+    header a { color:#bfdbfe; text-decoration:none; }
+    main { max-width:1100px; margin:22px auto; padding:0 14px; }
+    .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 8px 22px rgba(0,0,0,.04); }
+    .full { grid-column: 1 / -1; }
+    h2 { margin:0 0 14px; font-size:18px; }
+    label { display:block; font-size:13px; color:var(--muted); margin:10px 0 6px; }
+    input, select, textarea { width:100%; padding:11px 12px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; background:#fff; }
+    button { border:0; border-radius:10px; padding:11px 14px; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; margin-top:12px; }
+    button.secondary { background:#374151; }
+    button.green { background:var(--ok); }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .row { display:flex; gap:10px; align-items:center; }
+    .row > * { flex:1; }
+    .muted { color:var(--muted); font-size:13px; }
+    .pill { display:inline-block; padding:5px 9px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:12px; margin:3px 4px 3px 0; }
+    .ok { color:var(--ok); font-weight:700; }
+    .bad { color:var(--bad); font-weight:700; }
+    pre { background:#0f172a; color:#e5e7eb; padding:12px; border-radius:10px; overflow:auto; max-height:300px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { border-bottom:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; }
+    th { color:#374151; background:#f9fafb; }
+    .hidden { display:none; }
+    @media (max-width: 780px) { .grid { grid-template-columns:1fr; } .row{flex-direction:column;} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LoanDocs User Panel</h1>
+    <div><a href="/admin/">Admin</a> · <a href="/docs">Docs</a></div>
+  </header>
+
+  <main class="grid">
+    <section class="card full">
+      <h2>1) API Key</h2>
+      <div class="row">
+        <input id="apiKey" type="password" placeholder="Paste x-api-key here" />
+        <button class="secondary" onclick="saveApiKey()">Save Key</button>
+        <button onclick="loadLoanTypes()">Load Loan Types</button>
+      </div>
+      <p class="muted">API key Admin Panel → API Keys se milegi. Browser localStorage me save hogi.</p>
+    </section>
+
+    <section class="card">
+      <h2>2) Create Application</h2>
+      <label>Loan Type</label>
+      <select id="loanType"><option value="">Load loan types first</option></select>
+      <label>Applicant Name</label>
+      <input id="applicantName" placeholder="e.g. Test User" />
+      <div class="row">
+        <div><label>Phone</label><input id="applicantPhone" placeholder="optional" /></div>
+        <div><label>Email</label><input id="applicantEmail" placeholder="optional" /></div>
+      </div>
+      <button onclick="createApplication()">Create Application</button>
+      <p class="muted">Created Application ID:</p>
+      <input id="currentAppId" placeholder="Application ID will appear here; or paste existing ID" />
+    </section>
+
+    <section class="card">
+      <h2>3) Upload Documents</h2>
+      <label>Choose files / camera images</label>
+      <input id="files" type="file" multiple accept="image/*,application/pdf" />
+      <label>Camera capture</label>
+      <input id="cameraFile" type="file" accept="image/*" capture="environment" />
+      <button class="green" onclick="uploadDocuments()">Upload & Process</button>
+      <p class="muted">JPEG/PNG/PDF upload ho sakta hai. Mobile browser me camera option bhi dikhega.</p>
+    </section>
+
+    <section class="card full">
+      <h2>4) Status / Missing / PDF</h2>
+      <div class="row">
+        <button onclick="getStatus()">Refresh Status</button>
+        <button class="secondary" onclick="downloadPdf()">Download Final PDF</button>
+      </div>
+      <div id="statusBox" style="margin-top:14px"></div>
+    </section>
+
+    <section class="card full">
+      <h2>Response / Error Log</h2>
+      <pre id="log">Ready.</pre>
+    </section>
+  </main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function apiKey() {
+    return $('apiKey').value.trim();
+  }
+  function headersJson() {
+    return { 'Content-Type': 'application/json', 'x-api-key': apiKey() };
+  }
+  function headersOnly() {
+    return { 'x-api-key': apiKey() };
+  }
+  function log(data) {
+    $('log').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  }
+  function requireKey() {
+    if (!apiKey()) { alert('Pehle API key daal/save kar.'); return false; }
+    return true;
+  }
+  function saveApiKey() {
+    localStorage.setItem('loandocs_api_key', apiKey());
+    log('API key saved in this browser.');
+  }
+
+  async function loadLoanTypes() {
+    if (!requireKey()) return;
+    try {
+      const res = await fetch('/api/v1/loan-types', { headers: headersOnly() });
+      const data = await res.json();
+      if (!res.ok) throw data;
+      const select = $('loanType');
+      select.innerHTML = '';
+      (data.loan_types || []).forEach(lt => {
+        const opt = document.createElement('option');
+        opt.value = lt.code;
+        opt.textContent = `${lt.name} (${lt.code})`;
+        select.appendChild(opt);
+      });
+      log(data);
+    } catch (e) { log(e); alert('Loan types load nahi hue. API key check kar.'); }
+  }
+
+  async function createApplication() {
+    if (!requireKey()) return;
+    const fd = new FormData();
+    fd.append('loan_type_code', $('loanType').value);
+    fd.append('applicant_name', $('applicantName').value.trim());
+    fd.append('applicant_phone', $('applicantPhone').value.trim());
+    fd.append('applicant_email', $('applicantEmail').value.trim());
+    try {
+      const res = await fetch('/api/v1/applications/create', { method:'POST', headers: headersOnly(), body: fd });
+      const data = await res.json();
+      if (!res.ok) throw data;
+      $('currentAppId').value = data.application_id || '';
+      log(data);
+      await getStatus();
+    } catch (e) { log(e); alert('Application create nahi hui. Log dekho.'); }
+  }
+
+  async function uploadDocuments() {
+    if (!requireKey()) return;
+    const appId = $('currentAppId').value.trim();
+    if (!appId) { alert('Pehle application create karo ya Application ID paste karo.'); return; }
+    const fd = new FormData();
+    fd.append('application_id', appId);
+    const fileInput = $('files');
+    for (const f of fileInput.files) fd.append('files', f);
+    const cam = $('cameraFile');
+    for (const f of cam.files) fd.append('files', f);
+    if (!fd.getAll('files').length) { alert('At least ek file select kar.'); return; }
+
+    log('Uploading and processing...');
+    try {
+      const res = await fetch('/api/v1/upload', { method:'POST', headers: headersOnly(), body: fd });
+      const data = await res.json();
+      if (!res.ok) throw data;
+      log(data);
+      await getStatus();
+    } catch (e) { log(e); alert('Upload/process failed. Log dekho.'); }
+  }
+
+  async function getStatus() {
+    if (!requireKey()) return;
+    const appId = $('currentAppId').value.trim();
+    if (!appId) return;
+    try {
+      const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}`, { headers: headersOnly() });
+      const data = await res.json();
+      if (!res.ok) throw data;
+      renderStatus(data);
+      log(data);
+    } catch (e) { log(e); }
+  }
+
+  function renderStatus(data) {
+    const checklist = data.checklist || {};
+    const missing = checklist.missing_documents || checklist.missing || [];
+    const uploaded = checklist.uploaded_documents || checklist.uploaded || [];
+    const docs = data.documents || [];
+    let html = `<p><b>Application:</b> ${data.application_id} &nbsp; <b>Status:</b> <span class="${data.status === 'complete' ? 'ok':'bad'}">${data.status}</span></p>`;
+    html += `<p><b>Applicant:</b> ${data.applicant_name || '-'} · <b>Loan:</b> ${data.loan_type}</p>`;
+    html += `<p><b>Uploaded:</b> ${(uploaded || []).map(x => `<span class="pill">${x}</span>`).join('') || '-'}</p>`;
+    html += `<p><b>Missing:</b> ${(missing || []).map(x => `<span class="pill">${typeof x === 'string' ? x : (x.display_name || x.doc_key || JSON.stringify(x))}</span>`).join('') || '<span class="ok">None</span>'}</p>`;
+    if (docs.length) {
+      html += `<table><thead><tr><th>Document</th><th>Confidence</th><th>Extracted Fields</th></tr></thead><tbody>`;
+      docs.forEach(d => {
+        html += `<tr><td>${d.doc_display_name || d.doc_key}</td><td>${d.confidence_score ?? '-'}</td><td><pre>${JSON.stringify(d.extracted_fields || {}, null, 2)}</pre></td></tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+    $('statusBox').innerHTML = html;
+  }
+
+  async function downloadPdf() {
+    if (!requireKey()) return;
+    const appId = $('currentAppId').value.trim();
+    if (!appId) { alert('Application ID required.'); return; }
+    try {
+      const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/pdf`, { headers: headersOnly() });
+      if (!res.ok) throw await res.text();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${appId}_documents.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) { log(String(e)); alert('PDF download failed. Log dekho.'); }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    $('apiKey').value = localStorage.getItem('loandocs_api_key') || '';
+    if ($('apiKey').value) loadLoanTypes();
+  });
+</script>
+</body>
+</html>

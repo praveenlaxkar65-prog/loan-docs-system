@@ -13,7 +13,7 @@ import io
 
 from database import get_db, Application, Document, DocumentMaster, LoanType, ApiUser
 from services.image_service import process_image
-from services.ai_service import recognize_and_extract
+from services.ai_provider_service import recognize_and_extract
 from services.telegram_service import upload_file as tg_upload
 from services.checklist_service import get_application_status
 from services.pdf_service import generate_application_pdf
@@ -240,61 +240,94 @@ async def _process_single_file(
     db: Session,
 ) -> dict:
     raw_bytes = await file.read()
+    filename = file.filename or "document.jpg"
 
-    # 1. Image enhance + crop
-    processed_bytes = process_image(raw_bytes, file.filename or "doc.jpg")
+    processed_bytes = raw_bytes
+    doc_key = "unknown"
+    display_name = "Unknown Document"
+    confidence = 0.0
+    extracted_fields = {}
+    tg_file_id = ""
+    status = "uploaded"
+    errors = []
 
-    # 2. AI: recognize + extract
-    ai_result = await recognize_and_extract(processed_bytes, known_doc_keys, fields_map)
+    # 1. Image enhance + crop — fail ho to original bytes save/process continue
+    try:
+        processed_bytes = process_image(raw_bytes, filename)
+    except Exception as e:
+        errors.append(f"image_processing_failed: {str(e)}")
+        status = "image_processing_failed"
 
-    doc_key         = ai_result.get("doc_key", "unknown")
-    confidence      = float(ai_result.get("confidence", 0.0))
-    display_name    = ai_result.get("doc_display_name", doc_key.replace("_", " ").title())
-    extracted_fields = ai_result.get("extracted_fields", {})
+    # 2. AI recognize + extract — fail ho to bhi DB save
+    try:
+        ai_result = await recognize_and_extract(processed_bytes, known_doc_keys, fields_map)
+        doc_key = ai_result.get("doc_key") or "unknown"
+        confidence = float(ai_result.get("confidence", 0.0) or 0.0)
+        display_name = ai_result.get("doc_display_name") or doc_key.replace("_", " ").title()
+        extracted_fields = ai_result.get("extracted_fields") or {}
+        if doc_key != "unknown":
+            status = "processed"
+    except Exception as e:
+        errors.append(f"ai_failed: {str(e)}")
+        status = "ai_failed"
 
-    # 3. Upload to Telegram
-    safe_name = f"{application_id}_{doc_key}.jpg"
-    caption   = f"AppID: {application_id} | Doc: {display_name}"
-    tg_file_id = await tg_upload(processed_bytes, safe_name, caption)
+    # 3. Telegram upload — fail ho to bhi DB save
+    try:
+        safe_name = f"{application_id}_{doc_key}_{filename}".replace("/", "_").replace("\\", "_")
+        caption = f"AppID: {application_id} | Doc: {display_name}"
+        tg_file_id = await tg_upload(processed_bytes, safe_name, caption)
+    except Exception as e:
+        errors.append(f"telegram_failed: {str(e)}")
+        if status == "processed":
+            status = "storage_failed"
 
-    # 4. Get serial order
+    # 4. Serial order
     master = db.query(DocumentMaster).filter(DocumentMaster.doc_key == doc_key).first()
     serial = master.serial_order if master else 999
 
-    # 5. Remove old record if same doc_key already uploaded (replace)
-    existing = db.query(Document).filter(
-        Document.application_id == application_id,
-        Document.doc_key == doc_key
-    ).first()
-    if existing:
-        db.delete(existing)
-        db.flush()
+    # 5. Duplicate handling:
+    # known doc_key ho to replace same doc_key, unknown ho to multiple unknown files allow
+    if doc_key != "unknown":
+        existing = db.query(Document).filter(
+            Document.application_id == application_id,
+            Document.doc_key == doc_key
+        ).first()
+        if existing:
+            db.delete(existing)
+            db.flush()
 
-    # 6. Save to DB
+    # 6. Save to DB always
     doc_record = Document(
         application_id=application_id,
         doc_key=doc_key,
         doc_display_name=display_name,
-        telegram_file_id=tg_file_id,
-        original_filename=file.filename or "",
-        file_type="pdf" if (file.filename or "").endswith(".pdf") else "image",
-        extracted_fields=json.dumps(extracted_fields),
+        telegram_file_id=tg_file_id or "",
+        original_filename=filename,
+        file_type="pdf" if filename.lower().endswith(".pdf") else "image",
+        extracted_fields=json.dumps({
+            **(extracted_fields if isinstance(extracted_fields, dict) else {}),
+            "_system_status": status,
+            "_system_errors": errors,
+        }),
         confidence_score=confidence,
         serial_order=serial,
     )
     db.add(doc_record)
     db.commit()
+    db.refresh(doc_record)
 
     return {
-        "filename": file.filename,
-        "success": True,
+        "filename": filename,
+        "success": status in ["processed", "uploaded"],
+        "status": status,
         "doc_key": doc_key,
         "doc_display_name": display_name,
         "confidence": confidence,
         "extracted_fields": extracted_fields,
         "telegram_file_id": tg_file_id,
+        "errors": errors,
+        "document_id": doc_record.id,
     }
-
 
 def _generate_app_id() -> str:
     year = datetime.now().year

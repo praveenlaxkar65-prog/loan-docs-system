@@ -9,6 +9,7 @@ from database import init_db
 from api.upload import router as upload_router
 from api.admin import router as admin_api_router
 from api.admin_panel import router as admin_panel_router
+from api.user_panel import router as user_panel_router
 
 # ── Init DB ──────────────────────────────────────────────────────
 init_db()
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(upload_router)
 app.include_router(admin_api_router)
 app.include_router(admin_panel_router)
+app.include_router(user_panel_router)
 
 
 # ── Health ───────────────────────────────────────────────────────
@@ -49,5 +51,6 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
         "admin": "/admin",
+        "user": "/user",
         "health": "/health",
     }
