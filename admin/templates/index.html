@@ -5,17 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LoanDocs Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = { theme: { extend: { colors: { brand: '#1a56db' } } } }
-</script>
-<style>
-  .sidebar-link { @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition-all; }
-  .sidebar-link.active { @apply bg-white/20 text-white font-semibold; }
-</style>
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-<!-- Login Screen -->
+<!-- Login -->
 <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center z-50">
   <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
     <div class="text-center mb-6">
@@ -28,10 +21,7 @@
       class="w-full border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
     <input id="loginPass" type="password" placeholder="Password" value="admin123"
       class="w-full border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <button onclick="doLogin()"
-      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
-      Sign In
-    </button>
+    <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">Sign In</button>
   </div>
 </div>
 
@@ -46,112 +36,108 @@
       <p class="text-blue-300 text-xs">Admin Panel</p>
     </div>
     <nav class="flex-1 space-y-1">
-      <a href="#" class="sidebar-link active" onclick="showPage('dashboard')">📊 Dashboard</a>
-      <a href="#" class="sidebar-link" onclick="showPage('loanTypes')">📋 Loan Types</a>
-      <a href="#" class="sidebar-link" onclick="showPage('docMaster')">📄 Document Master</a>
-      <a href="#" class="sidebar-link" onclick="showPage('applications')">📁 Applications</a>
-      <a href="#" class="sidebar-link" onclick="showPage('apiKeys')">🔑 API Keys</a>
-      <a href="#" class="sidebar-link" onclick="showPage('settings')">⚙️ AI Providers</a>
+      <a href="#" class="sidebar-link active" onclick="showPage('dashboard',this)">📊 Dashboard</a>
+      <a href="#" class="sidebar-link" onclick="showPage('aiProviders',this)">🤖 AI Providers</a>
+      <a href="#" class="sidebar-link" onclick="showPage('settings',this)">⚙️ Settings</a>
+      <a href="#" class="sidebar-link" onclick="showPage('loanTypes',this)">📋 Loan Types</a>
+      <a href="#" class="sidebar-link" onclick="showPage('docMaster',this)">📄 Document Master</a>
+      <a href="#" class="sidebar-link" onclick="showPage('applications',this)">📁 Applications</a>
+      <a href="#" class="sidebar-link" onclick="showPage('apiKeys',this)">🔑 API Keys</a>
     </nav>
-    <button onclick="logout()"
-      class="mt-4 text-blue-300 hover:text-white text-sm px-4 py-2 hover:bg-white/10 rounded-lg transition">
-      🚪 Logout
-    </button>
+    <button onclick="logout()" class="mt-4 text-blue-300 hover:text-white text-sm px-4 py-2 hover:bg-white/10 rounded-lg transition">🚪 Logout</button>
   </aside>
 
   <!-- Content -->
   <main class="flex-1 overflow-y-auto">
 
-    <!-- Dashboard -->
+    <!-- ── DASHBOARD ─────────────────────────────────────────── -->
     <div id="page-dashboard" class="p-8">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
-      <div id="statsGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white rounded-xl p-5 shadow-sm border">
-          <p class="text-gray-500 text-sm">Total Applications</p>
-          <p id="stat-total" class="text-3xl font-bold text-blue-600 mt-1">—</p>
-        </div>
-        <div class="bg-white rounded-xl p-5 shadow-sm border">
-          <p class="text-gray-500 text-sm">Complete</p>
-          <p id="stat-complete" class="text-3xl font-bold text-green-600 mt-1">—</p>
-        </div>
-        <div class="bg-white rounded-xl p-5 shadow-sm border">
-          <p class="text-gray-500 text-sm">Incomplete</p>
-          <p id="stat-incomplete" class="text-3xl font-bold text-orange-500 mt-1">—</p>
-        </div>
-        <div class="bg-white rounded-xl p-5 shadow-sm border">
-          <p class="text-gray-500 text-sm">Exported PDFs</p>
-          <p id="stat-exported" class="text-3xl font-bold text-purple-600 mt-1">—</p>
-        </div>
-        <div class="bg-white rounded-xl p-5 shadow-sm border">
-          <p class="text-gray-500 text-sm">Total Documents</p>
-          <p id="stat-docs" class="text-3xl font-bold text-gray-700 mt-1">—</p>
-        </div>
-        <div class="bg-white rounded-xl p-5 shadow-sm border">
-          <p class="text-gray-500 text-sm">Loan Types Active</p>
-          <p id="stat-ltypes" class="text-3xl font-bold text-blue-800 mt-1">—</p>
-        </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">Total Applications</p><p id="s-total" class="text-3xl font-bold text-blue-600 mt-1">—</p></div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">Complete</p><p id="s-complete" class="text-3xl font-bold text-green-600 mt-1">—</p></div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">Incomplete</p><p id="s-incomplete" class="text-3xl font-bold text-orange-500 mt-1">—</p></div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">Exported PDFs</p><p id="s-exported" class="text-3xl font-bold text-purple-600 mt-1">—</p></div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">Total Documents</p><p id="s-docs" class="text-3xl font-bold text-gray-700 mt-1">—</p></div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">Loan Types Active</p><p id="s-ltypes" class="text-3xl font-bold text-blue-800 mt-1">—</p></div>
+        <div class="bg-white rounded-xl p-5 shadow-sm border"><p class="text-gray-500 text-sm">AI Providers Active</p><p id="s-aiproviders" class="text-3xl font-bold text-indigo-600 mt-1">—</p></div>
       </div>
-
-      <!-- Quick API guide -->
       <div class="bg-white rounded-xl p-6 shadow-sm border">
         <h3 class="font-bold text-gray-700 mb-3">Quick API Reference</h3>
         <div class="space-y-2 font-mono text-sm">
-          <div class="bg-gray-50 rounded p-3">
-            <span class="text-green-600 font-bold">POST</span>
-            <span class="text-gray-600"> /api/v1/applications/create</span>
-            <p class="text-gray-400 text-xs mt-1">Create new application → get app_id</p>
-          </div>
-          <div class="bg-gray-50 rounded p-3">
-            <span class="text-green-600 font-bold">POST</span>
-            <span class="text-gray-600"> /api/v1/upload</span>
-            <p class="text-gray-400 text-xs mt-1">Upload documents (multipart/form-data)</p>
-          </div>
-          <div class="bg-gray-50 rounded p-3">
-            <span class="text-blue-600 font-bold">GET</span>
-            <span class="text-gray-600"> /api/v1/applications/{id}</span>
-            <p class="text-gray-400 text-xs mt-1">Get status + extracted data</p>
-          </div>
-          <div class="bg-gray-50 rounded p-3">
-            <span class="text-blue-600 font-bold">GET</span>
-            <span class="text-gray-600"> /api/v1/applications/{id}/pdf</span>
-            <p class="text-gray-400 text-xs mt-1">Download final PDF</p>
-          </div>
+          <div class="bg-gray-50 rounded p-3"><span class="text-green-600 font-bold">POST</span> <span class="text-gray-600">/api/v1/applications/create</span><p class="text-gray-400 text-xs mt-1">Create application → get app_id | Header: X-API-Key</p></div>
+          <div class="bg-gray-50 rounded p-3"><span class="text-green-600 font-bold">POST</span> <span class="text-gray-600">/api/v1/upload</span><p class="text-gray-400 text-xs mt-1">Upload documents (multipart) | application_id + files</p></div>
+          <div class="bg-gray-50 rounded p-3"><span class="text-blue-600 font-bold">GET</span> <span class="text-gray-600">/api/v1/applications/{id}</span><p class="text-gray-400 text-xs mt-1">Status + extracted data + checklist</p></div>
+          <div class="bg-gray-50 rounded p-3"><span class="text-blue-600 font-bold">GET</span> <span class="text-gray-600">/api/v1/applications/{id}/pdf</span><p class="text-gray-400 text-xs mt-1">Download final PDF</p></div>
         </div>
-        <p class="text-xs text-gray-400 mt-3">All endpoints require: <code class="bg-gray-100 px-1 rounded">X-API-Key: your_key</code></p>
       </div>
     </div>
 
-    <!-- Loan Types -->
+    <!-- ── AI PROVIDERS ──────────────────────────────────────── -->
+    <div id="page-aiProviders" class="p-8 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800">AI Providers</h2>
+          <p class="text-gray-500 text-sm mt-1">Providers are tried in priority order. First active one that succeeds is used. Others are automatic fallback.</p>
+        </div>
+        <button onclick="openProviderModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Add Provider</button>
+      </div>
+      <div id="aiProvidersList" class="space-y-3"></div>
+    </div>
+
+    <!-- ── SETTINGS ──────────────────────────────────────────── -->
+    <div id="page-settings" class="p-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
+      <div class="bg-white rounded-xl p-6 shadow-sm border max-w-2xl">
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">📨 Telegram Storage</h3>
+        <p class="text-sm text-gray-500 mb-4">All uploaded documents are stored in your Telegram channel. Create a private channel, add your bot as admin, and configure below.</p>
+        <div class="space-y-4">
+          <div>
+            <label class="text-sm font-medium text-gray-700">Bot Token <span class="text-gray-400 text-xs">(from @BotFather → /newbot)</span></label>
+            <input id="tg-token" type="password" placeholder="123456789:ABCdef..."
+              class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <p id="tg-token-status" class="text-xs text-gray-400 mt-1"></p>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Channel ID <span class="text-gray-400 text-xs">(e.g. -1001234567890)</span></label>
+            <input id="tg-channel" type="text" placeholder="-1001234567890"
+              class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <p class="text-xs text-gray-400 mt-1">Visit api.telegram.org/bot&lt;TOKEN&gt;/getUpdates to find your channel ID after sending a message in it.</p>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">Save Settings</button>
+            <button onclick="testTelegram()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🔗 Test Connection</button>
+          </div>
+          <div id="tg-test-result" class="hidden rounded-lg p-3 text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOAN TYPES ────────────────────────────────────────── -->
     <div id="page-loanTypes" class="p-8 hidden">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Loan Types</h2>
-        <button onclick="openLoanTypeModal()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-          + Add Loan Type
-        </button>
+        <button onclick="openLoanTypeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Add Loan Type</button>
       </div>
       <div id="loanTypesList" class="space-y-4"></div>
     </div>
 
-    <!-- Document Master -->
+    <!-- ── DOCUMENT MASTER ───────────────────────────────────── -->
     <div id="page-docMaster" class="p-8 hidden">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Document Master</h2>
-        <button onclick="openDocMasterModal()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-          + Add Document Type
-        </button>
+        <button onclick="openDocMasterModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Add Document Type</button>
       </div>
-      <div id="docMasterList" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">#</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Key</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Display Name</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Fields</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Status</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Actions</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">#</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Key</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Display Name</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Extract Fields</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody id="docMasterBody"></tbody>
@@ -159,30 +145,28 @@
       </div>
     </div>
 
-    <!-- Applications -->
+    <!-- ── APPLICATIONS ──────────────────────────────────────── -->
     <div id="page-applications" class="p-8 hidden">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Applications</h2>
-        <div class="flex gap-3">
-          <select id="filterStatus" onchange="loadApplications()"
-            class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">All Status</option>
-            <option value="incomplete">Incomplete</option>
-            <option value="complete">Complete</option>
-            <option value="exported">Exported</option>
-          </select>
-        </div>
+        <select id="filterStatus" onchange="loadApplications()"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">All Status</option>
+          <option value="incomplete">Incomplete</option>
+          <option value="complete">Complete</option>
+          <option value="exported">Exported</option>
+        </select>
       </div>
       <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">App ID</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Applicant</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Loan Type</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Status</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Created</th>
-              <th class="text-left px-5 py-3 font-semibold text-gray-600">Actions</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">App ID</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Applicant</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Loan Type</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Created</th>
+              <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody id="applicationsBody"></tbody>
@@ -190,29 +174,13 @@
       </div>
     </div>
 
-    <!-- API Keys -->
+    <!-- ── API KEYS ──────────────────────────────────────────── -->
     <div id="page-apiKeys" class="p-8 hidden">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">API Keys</h2>
-        <button onclick="createApiKey()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-          + Generate Key
-        </button>
+        <button onclick="createApiKey()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Generate Key</button>
       </div>
       <div id="apiKeysList" class="space-y-3"></div>
-    </div>
-
-
-    <!-- AI Providers -->
-    <div id="page-settings" class="p-8 hidden">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h2 class="text-2xl font-bold text-gray-800">AI Providers</h2>
-          <p class="text-sm text-gray-500 mt-1">Claude, OpenAI, Gemini, OpenRouter ya custom endpoint — sab yahi se add karo.</p>
-        </div>
-        <button onclick="openAIProviderModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Add Provider</button>
-      </div>
-      <div id="aiProvidersList" class="space-y-3"></div>
     </div>
 
   </main>
@@ -221,336 +189,471 @@
 <!-- Modal -->
 <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between p-6 border-b">
+    <div class="flex items-center justify-between p-5 border-b">
       <h3 id="modalTitle" class="text-lg font-bold text-gray-800"></h3>
-      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
     </div>
-    <div id="modalBody" class="p-6"></div>
+    <div id="modalBody" class="p-5"></div>
   </div>
 </div>
+
+<style>
+.sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:8px; color:#cbd5e1; text-decoration:none; font-size:14px; transition:all 0.15s; }
+.sidebar-link:hover { background:rgba(255,255,255,0.1); color:white; }
+.sidebar-link.active { background:rgba(255,255,255,0.2); color:white; font-weight:600; }
+.badge-active { background:#dcfce7; color:#15803d; font-size:11px; padding:2px 8px; border-radius:9999px; font-weight:600; }
+.badge-inactive { background:#fee2e2; color:#dc2626; font-size:11px; padding:2px 8px; border-radius:9999px; font-weight:600; }
+.inp { width:100%; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px; font-size:14px; outline:none; }
+.inp:focus { border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,0.2); }
+.btn-primary { background:#2563eb; color:white; border:none; padding:9px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+.btn-primary:hover { background:#1d4ed8; }
+.btn-sm { font-size:12px; padding:5px 12px; border-radius:6px; cursor:pointer; border:none; transition:background 0.15s; }
+</style>
 
 <script>
 let TOKEN = localStorage.getItem('ld_token') || '';
 
-// ─── AUTH ────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────────
 async function doLogin() {
   const u = document.getElementById('loginUser').value;
   const p = document.getElementById('loginPass').value;
-  const fd = new FormData();
-  fd.append('username', u); fd.append('password', p);
-  const r = await fetch('/admin/api/auth/login', { method: 'POST', body: fd });
-  if (r.ok) {
-    const d = await r.json();
-    TOKEN = d.access_token;
-    localStorage.setItem('ld_token', TOKEN);
+  const fd = new FormData(); fd.append('username',u); fd.append('password',p);
+  const r = await fetch('/admin/api/auth/login',{method:'POST',body:fd});
+  if(r.ok){
+    const d = await r.json(); TOKEN = d.access_token;
+    localStorage.setItem('ld_token',TOKEN);
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
     document.getElementById('mainApp').classList.add('flex');
     loadDashboard();
   } else {
     const e = document.getElementById('loginError');
-    e.textContent = 'Invalid username or password';
-    e.classList.remove('hidden');
+    e.textContent='Invalid username or password'; e.classList.remove('hidden');
   }
 }
+function logout(){ localStorage.removeItem('ld_token'); location.reload(); }
 
-function logout() {
-  localStorage.removeItem('ld_token');
-  location.reload();
-}
-
-async function api(path, opts={}) {
-  const r = await fetch('/admin/api' + path, {
+async function api(path,opts={}){
+  const r = await fetch('/admin/api'+path,{
     ...opts,
-    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+    headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json',...(opts.headers||{})}
   });
-  if (r.status === 401) { logout(); return null; }
+  if(r.status===401){logout();return null;}
   return r.json();
 }
 
-// ─── NAVIGATION ──────────────────────────────────────────────────
-function showPage(name) {
-  document.querySelectorAll('[id^=page-]').forEach(el => el.classList.add('hidden'));
-  document.getElementById('page-' + name).classList.remove('hidden');
-  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  if (name === 'dashboard')    loadDashboard();
-  if (name === 'loanTypes')    loadLoanTypes();
-  if (name === 'docMaster')    loadDocMaster();
-  if (name === 'applications') loadApplications();
-  if (name === 'apiKeys')      loadApiKeys();
-  if (name === 'settings')     loadAIProviders();
+// ── NAVIGATION ────────────────────────────────────────────────────
+function showPage(name, el){
+  document.querySelectorAll('[id^=page-]').forEach(e=>e.classList.add('hidden'));
+  document.getElementById('page-'+name).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const loaders = {
+    dashboard:    loadDashboard,
+    aiProviders:  loadAiProviders,
+    settings:     loadSettings,
+    loanTypes:    loadLoanTypes,
+    docMaster:    loadDocMaster,
+    applications: loadApplications,
+    apiKeys:      loadApiKeys,
+  };
+  loaders[name]?.();
 }
 
-// ─── DASHBOARD ───────────────────────────────────────────────────
-async function loadDashboard() {
-  const d = await api('/dashboard');
-  if (!d) return;
-  document.getElementById('stat-total').textContent      = d.total_applications;
-  document.getElementById('stat-complete').textContent   = d.complete;
-  document.getElementById('stat-incomplete').textContent = d.incomplete;
-  document.getElementById('stat-exported').textContent   = d.exported;
-  document.getElementById('stat-docs').textContent       = d.total_documents;
-  document.getElementById('stat-ltypes').textContent     = d.loan_types;
+// ── DASHBOARD ─────────────────────────────────────────────────────
+async function loadDashboard(){
+  const d = await api('/dashboard'); if(!d)return;
+  document.getElementById('s-total').textContent      = d.total_applications;
+  document.getElementById('s-complete').textContent   = d.complete;
+  document.getElementById('s-incomplete').textContent = d.incomplete;
+  document.getElementById('s-exported').textContent   = d.exported;
+  document.getElementById('s-docs').textContent       = d.total_documents;
+  document.getElementById('s-ltypes').textContent     = d.loan_types;
+  document.getElementById('s-aiproviders').textContent= d.ai_providers;
 }
 
-// ─── LOAN TYPES ──────────────────────────────────────────────────
-async function loadLoanTypes() {
-  const data = await api('/loan-types');
+// ── AI PROVIDERS ──────────────────────────────────────────────────
+async function loadAiProviders(){
+  const data = await api('/ai-providers'); if(!data)return;
+  const el = document.getElementById('aiProvidersList');
+  el.innerHTML = !data.length ? '<p class="text-gray-400">No providers yet. Add one above.</p>' :
+    data.map(p=>`
+    <div class="bg-white rounded-xl border shadow-sm p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-gray-800">${esc(p.provider_name)}</span>
+            <span class="${p.is_active?'badge-active':'badge-inactive'}">${p.is_active?'Active':'Inactive'}</span>
+            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">${esc(p.request_format)}</span>
+            <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">Priority ${p.priority}</span>
+          </div>
+          <p class="text-sm text-gray-500 mt-1 font-mono truncate">${esc(p.model_name||'—')}</p>
+          <p class="text-xs text-gray-400 mt-0.5 truncate">${esc(p.base_url||'default URL')}</p>
+          <div class="flex gap-3 mt-1 text-xs text-gray-400">
+            <span>⏱ ${p.timeout_seconds}s timeout</span>
+            <span>🔄 ${p.retry_count} retries</span>
+            <span>🔑 API key: ${p.has_api_key?'✅ set':'❌ not set'}</span>
+          </div>
+        </div>
+        <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+          <button onclick="testProvider(${p.id})" class="btn-sm" style="background:#f0fdf4;color:#15803d">🧪 Test</button>
+          <button onclick="toggleProvider(${p.id})" class="btn-sm" style="background:#eff6ff;color:#1d4ed8">${p.is_active?'Deactivate':'Activate'}</button>
+          <button onclick="editProvider(${p.id})" class="btn-sm" style="background:#f9fafb;color:#374151">Edit</button>
+          <button onclick="deleteProvider(${p.id},'${esc(p.provider_name)}')" class="btn-sm" style="background:#fff1f2;color:#be123c">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openProviderModal(data=null){
+  document.getElementById('modalTitle').textContent = data ? 'Edit AI Provider' : 'Add AI Provider';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="space-y-3">
+      <div><label class="text-sm font-medium text-gray-700">Provider Name</label>
+        <input id="p-name" value="${data?.provider_name||''}" class="inp mt-1" placeholder="Claude Vision (Anthropic)"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-medium text-gray-700">Type</label>
+          <select id="p-type" class="inp mt-1">
+            ${['vision','text','both'].map(t=>`<option value="${t}"${(data?.provider_type||'vision')===t?' selected':''}>${t}</option>`).join('')}
+          </select></div>
+        <div><label class="text-sm font-medium text-gray-700">Request Format</label>
+          <select id="p-fmt" class="inp mt-1">
+            ${['anthropic','openai','gemini','custom'].map(f=>`<option value="${f}"${(data?.request_format||'openai')===f?' selected':''}>${f}</option>`).join('')}
+          </select></div>
+      </div>
+      <div><label class="text-sm font-medium text-gray-700">API Key ${data?.has_api_key?'<span class="text-green-600 text-xs">(currently set)</span>':''}</label>
+        <div class="flex gap-2 mt-1">
+          <input id="p-key" type="password" class="inp flex-1" placeholder="${data?.has_api_key?'Leave blank to keep current':'Your API key'}">
+          <button type="button" onclick="togglePwd('p-key')" class="btn-sm" style="background:#f3f4f6;color:#374151">👁</button>
+        </div>
+        ${data?.has_api_key?'<p class="text-xs text-gray-400 mt-1">Type new key to replace. Leave blank to keep existing. Type __CLEAR__ to remove.</p>':''}</div>
+      <div><label class="text-sm font-medium text-gray-700">Base URL <span class="text-gray-400 text-xs">(leave blank for default)</span></label>
+        <input id="p-url" value="${data?.base_url||''}" class="inp mt-1 font-mono text-sm" placeholder="https://api.anthropic.com/v1/messages"></div>
+      <div><label class="text-sm font-medium text-gray-700">Model Name</label>
+        <input id="p-model" value="${data?.model_name||''}" class="inp mt-1 font-mono text-sm" placeholder="claude-sonnet-4-6"></div>
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="text-sm font-medium text-gray-700">Priority</label>
+          <input id="p-priority" type="number" value="${data?.priority??1}" class="inp mt-1" min="1"></div>
+        <div><label class="text-sm font-medium text-gray-700">Timeout (s)</label>
+          <input id="p-timeout" type="number" value="${data?.timeout_seconds??90}" class="inp mt-1" min="5"></div>
+        <div><label class="text-sm font-medium text-gray-700">Retries</label>
+          <input id="p-retry" type="number" value="${data?.retry_count??0}" class="inp mt-1" min="0" max="5"></div>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-700">Notes / Extra Headers</label>
+        <textarea id="p-notes" rows="3" class="inp mt-1 font-mono text-xs" placeholder="Extra HTTP headers (one per line): X-Custom-Header: value">${data?.notes||''}</textarea>
+        <p class="text-xs text-gray-400 mt-1">For AI Gateway: put your gateway URL in Base URL. Extra auth headers go here as X-Header: value lines.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="p-active" ${data?.is_active!==false?'checked':''} class="w-4 h-4">
+        <label for="p-active" class="text-sm font-medium text-gray-700">Active (include in fallback chain)</label>
+      </div>
+      <button onclick="saveProvider(${data?.id??'null'})" class="btn-primary w-full mt-2">Save Provider</button>
+    </div>`;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+async function editProvider(id){
+  const data = await api('/ai-providers');
+  const p = data?.find(x=>x.id===id);
+  if(p) openProviderModal(p);
+}
+
+async function saveProvider(id){
+  const payload = {
+    provider_name:  document.getElementById('p-name').value.trim(),
+    provider_type:  document.getElementById('p-type').value,
+    request_format: document.getElementById('p-fmt').value,
+    base_url:       document.getElementById('p-url').value.trim(),
+    model_name:     document.getElementById('p-model').value.trim(),
+    priority:       parseInt(document.getElementById('p-priority').value)||1,
+    timeout_seconds: parseFloat(document.getElementById('p-timeout').value)||90,
+    retry_count:    parseInt(document.getElementById('p-retry').value)||0,
+    notes:          document.getElementById('p-notes').value,
+    is_active:      document.getElementById('p-active').checked,
+  };
+  const keyVal = document.getElementById('p-key').value.trim();
+  if(keyVal) payload.api_key = keyVal;
+
+  const r = id===null
+    ? await api('/ai-providers',{method:'POST',body:JSON.stringify(payload)})
+    : await api(`/ai-providers/${id}`,{method:'PUT',body:JSON.stringify(payload)});
+  if(r?.success){ closeModal(); loadAiProviders(); }
+  else alert(r?.detail || r?.message || 'Save failed');
+}
+
+async function toggleProvider(id){
+  const r = await api(`/ai-providers/${id}/activate`,{method:'POST'});
+  if(r) loadAiProviders();
+}
+
+async function deleteProvider(id, name){
+  if(!confirm(`Delete provider "${name}"?`)) return;
+  await api(`/ai-providers/${id}`,{method:'DELETE'});
+  loadAiProviders();
+}
+
+async function testProvider(id){
+  const btn = event.currentTarget;
+  btn.textContent = '⏳ Testing...'; btn.disabled = true;
+  const r = await api(`/ai-providers/${id}/test`,{method:'POST'});
+  btn.textContent = '🧪 Test'; btn.disabled = false;
+  if(r?.success){
+    alert(`✅ Provider test PASSED!\n\nResponse preview:\n${r.response_preview||'(no preview)'}`);
+  } else {
+    alert(`❌ Provider test FAILED\n\nError: ${r?.error||'Unknown error'}`);
+  }
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────
+async function loadSettings(){
+  const d = await api('/settings'); if(!d) return;
+  document.getElementById('tg-channel').value = d.telegram_channel_id || '';
+  const status = document.getElementById('tg-token-status');
+  status.textContent = d.telegram_bot_token_set
+    ? `✅ Token is set (${d.telegram_bot_token}). Leave blank below to keep it.`
+    : '❌ Not set yet.';
+}
+
+async function saveSettings(){
+  const token   = document.getElementById('tg-token').value.trim();
+  const channel = document.getElementById('tg-channel').value.trim();
+  const payload = {};
+  if(token)   payload.telegram_bot_token = token;
+  if(channel) payload.telegram_channel_id = channel;
+  const r = await api('/settings',{method:'POST',body:JSON.stringify(payload)});
+  if(r?.success){
+    alert('✅ Settings saved');
+    document.getElementById('tg-token').value = '';
+    loadSettings();
+  }
+}
+
+async function testTelegram(){
+  const el = document.getElementById('tg-test-result');
+  el.className = 'rounded-lg p-3 text-sm bg-blue-50 text-blue-700';
+  el.textContent = '⏳ Testing connection...'; el.classList.remove('hidden');
+  const r = await api('/settings/telegram/test',{method:'POST'});
+  if(r?.ok){
+    el.className = 'rounded-lg p-3 text-sm bg-green-50 text-green-700';
+    el.textContent = `✅ Connected! Bot: @${r.bot_username} | Channel: ${r.channel_id}`;
+  } else {
+    el.className = 'rounded-lg p-3 text-sm bg-red-50 text-red-700';
+    el.textContent = `❌ Failed: ${r?.error||'Unknown error'}`;
+  }
+}
+
+// ── LOAN TYPES ────────────────────────────────────────────────────
+async function loadLoanTypes(){
+  const data = await api('/loan-types'); if(!data)return;
   const el = document.getElementById('loanTypesList');
-  el.innerHTML = (data||[]).map(lt => `
+  el.innerHTML = !data.length ? '<p class="text-gray-400">No loan types yet.</p>' :
+    data.map(lt=>`
     <div class="bg-white rounded-xl border shadow-sm p-5">
       <div class="flex items-start justify-between">
         <div>
-          <span class="font-bold text-gray-800">${lt.name}</span>
-          <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono">${lt.code}</span>
-          ${lt.is_active ? '<span class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Active</span>' : '<span class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactive</span>'}
-          <p class="text-gray-500 text-sm mt-1">${lt.description || ''}</p>
+          <span class="font-bold text-gray-800">${esc(lt.name)}</span>
+          <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono">${esc(lt.code)}</span>
+          <span class="ml-1 ${lt.is_active?'badge-active':'badge-inactive'}">${lt.is_active?'Active':'Inactive'}</span>
+          <p class="text-gray-500 text-sm mt-1">${esc(lt.description||'')}</p>
         </div>
         <div class="flex gap-2">
-          <button onclick="editLoanType(${lt.id},'${lt.name}','${lt.description||''}',${JSON.stringify(lt.required_docs).replace(/"/g,'&quot;')})"
-            class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">Edit</button>
-          <button onclick="toggleLoanType(${lt.id},${!lt.is_active})"
-            class="text-sm ${lt.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} px-3 py-1.5 rounded-lg transition">
-            ${lt.is_active ? 'Deactivate' : 'Activate'}
-          </button>
+          <button onclick="editLoanType(${lt.id})" class="btn-sm" style="background:#f9fafb;color:#374151">Edit</button>
+          <button onclick="toggleLt(${lt.id},${!lt.is_active})" class="btn-sm" style="${lt.is_active?'background:#fff1f2;color:#be123c':'background:#f0fdf4;color:#15803d'}">${lt.is_active?'Deactivate':'Activate'}</button>
         </div>
       </div>
       <div class="mt-3 flex flex-wrap gap-1.5">
-        ${(lt.required_docs||[]).map(dk=>`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded font-mono">${dk}</span>`).join('')}
+        ${(lt.required_docs||[]).map(dk=>`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded font-mono">${esc(dk)}</span>`).join('')}
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function openLoanTypeModal(data=null) {
-  document.getElementById('modalTitle').textContent = data ? 'Edit Loan Type' : 'Add Loan Type';
-  document.getElementById('modalBody').innerHTML = `
+function openLoanTypeModal(data=null){
+  document.getElementById('modalTitle').textContent = data?'Edit Loan Type':'Add Loan Type';
+  document.getElementById('modalBody').innerHTML=`
     <div class="space-y-4">
       <div><label class="text-sm font-medium text-gray-700">Name</label>
-        <input id="lt-name" value="${data?.name||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
-      ${!data ? `<div><label class="text-sm font-medium text-gray-700">Code (unique, no spaces)</label>
-        <input id="lt-code" placeholder="home_loan" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"></div>` : ''}
+        <input id="lt-name" value="${data?.name||''}" class="inp mt-1"></div>
+      ${!data?`<div><label class="text-sm font-medium text-gray-700">Code (snake_case, unique)</label>
+        <input id="lt-code" placeholder="vehicle_loan" class="inp mt-1 font-mono"></div>`:''}
       <div><label class="text-sm font-medium text-gray-700">Description</label>
-        <input id="lt-desc" value="${data?.description||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
-      <div><label class="text-sm font-medium text-gray-700">Required Documents (one per line, use doc_key)</label>
-        <textarea id="lt-docs" rows="6" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm">${(data?.required_docs||[]).join('\n')}</textarea></div>
-      <button onclick="saveLoanType(${data?.id||'null'})"
-        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">Save</button>
+        <input id="lt-desc" value="${data?.description||''}" class="inp mt-1"></div>
+      <div><label class="text-sm font-medium text-gray-700">Required Documents <span class="text-gray-400 text-xs">(one doc_key per line)</span></label>
+        <textarea id="lt-docs" rows="7" class="inp mt-1 font-mono text-sm">${(data?.required_docs||[]).join('\n')}</textarea></div>
+      <button onclick="saveLoanType(${data?.id??'null'})" class="btn-primary w-full">Save</button>
     </div>`;
   document.getElementById('modal').classList.remove('hidden');
 }
 
-function editLoanType(id, name, desc, docs) {
-  openLoanTypeModal({ id, name, description: desc, required_docs: docs });
+async function editLoanType(id){
+  const data = await api('/loan-types');
+  const lt = data?.find(x=>x.id===id);
+  if(lt) openLoanTypeModal(lt);
 }
 
-async function saveLoanType(id) {
-  const name  = document.getElementById('lt-name').value.trim();
-  const desc  = document.getElementById('lt-desc').value.trim();
-  const docs  = document.getElementById('lt-docs').value.trim().split('\n').map(s=>s.trim()).filter(Boolean);
-  const code  = id === null ? document.getElementById('lt-code').value.trim() : undefined;
-  const payload = { name, description: desc, required_docs: docs };
-  if (code) payload.code = code;
-  let r;
-  if (id === null) r = await api('/loan-types', { method:'POST', body: JSON.stringify(payload) });
-  else             r = await api(`/loan-types/${id}`, { method:'PUT', body: JSON.stringify(payload) });
-  closeModal();
+async function saveLoanType(id){
+  const payload = {
+    name: document.getElementById('lt-name').value.trim(),
+    description: document.getElementById('lt-desc').value.trim(),
+    required_docs: document.getElementById('lt-docs').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
+  };
+  if(id===null) payload.code = document.getElementById('lt-code').value.trim();
+  const r = id===null
+    ? await api('/loan-types',{method:'POST',body:JSON.stringify(payload)})
+    : await api(`/loan-types/${id}`,{method:'PUT',body:JSON.stringify(payload)});
+  if(r?.success||r?.id){ closeModal(); loadLoanTypes(); }
+  else alert(r?.detail||'Save failed');
+}
+
+async function toggleLt(id, active){
+  await api(`/loan-types/${id}`,{method:'PUT',body:JSON.stringify({is_active:active})});
   loadLoanTypes();
 }
 
-async function toggleLoanType(id, active) {
-  await api(`/loan-types/${id}`, { method:'PUT', body: JSON.stringify({ is_active: active }) });
-  loadLoanTypes();
-}
-
-// ─── DOC MASTER ──────────────────────────────────────────────────
-async function loadDocMaster() {
-  const data = await api('/document-master');
-  const tbody = document.getElementById('docMasterBody');
-  tbody.innerHTML = (data||[]).map(d => `
+// ── DOC MASTER ────────────────────────────────────────────────────
+async function loadDocMaster(){
+  const data = await api('/document-master'); if(!data)return;
+  document.getElementById('docMasterBody').innerHTML = data.map(d=>`
     <tr class="border-b hover:bg-gray-50">
-      <td class="px-5 py-3 text-gray-500">${d.serial_order}</td>
-      <td class="px-5 py-3 font-mono text-xs text-gray-600">${d.doc_key}</td>
-      <td class="px-5 py-3 font-medium">${d.display_name}</td>
-      <td class="px-5 py-3 text-xs text-gray-500">${(d.extraction_fields||[]).join(', ')}</td>
-      <td class="px-5 py-3">
-        <span class="text-xs px-2 py-1 rounded ${d.is_active ? 'bg-green-100 text-green-700':'bg-red-100 text-red-600'}">${d.is_active?'Active':'Inactive'}</span>
+      <td class="px-4 py-3 text-gray-500">${d.serial_order}</td>
+      <td class="px-4 py-3 font-mono text-xs text-gray-600">${esc(d.doc_key)}</td>
+      <td class="px-4 py-3 font-medium text-sm">${esc(d.display_name)}</td>
+      <td class="px-4 py-3 text-xs text-gray-500">${(d.extraction_fields||[]).join(', ')}</td>
+      <td class="px-4 py-3"><span class="${d.is_active?'badge-active':'badge-inactive'}">${d.is_active?'Active':'Off'}</span></td>
+      <td class="px-4 py-3">
+        <button onclick="editDocMaster(${d.id})" class="btn-sm" style="background:#f9fafb;color:#374151">Edit</button>
       </td>
-      <td class="px-5 py-3">
-        <button onclick="editDocMaster(${d.id},'${d.display_name}','${d.description||''}',${JSON.stringify(d.extraction_fields).replace(/"/g,'&quot;')},${d.serial_order})"
-          class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded transition">Edit</button>
-      </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
-function openDocMasterModal(data=null) {
-  document.getElementById('modalTitle').textContent = data ? 'Edit Document Type' : 'Add Document Type';
-  document.getElementById('modalBody').innerHTML = `
+function openDocMasterModal(data=null){
+  document.getElementById('modalTitle').textContent = data?'Edit Document Type':'Add Document Type';
+  document.getElementById('modalBody').innerHTML=`
     <div class="space-y-4">
-      ${!data ? `<div><label class="text-sm font-medium text-gray-700">Doc Key (unique, snake_case)</label>
-        <input id="dm-key" placeholder="salary_slip_3" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm"></div>` : ''}
+      ${!data?`<div><label class="text-sm font-medium text-gray-700">Doc Key (snake_case, unique)</label>
+        <input id="dm-key" placeholder="form_26as" class="inp mt-1 font-mono"></div>`:''}
       <div><label class="text-sm font-medium text-gray-700">Display Name</label>
-        <input id="dm-name" value="${data?.display_name||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+        <input id="dm-name" value="${data?.display_name||''}" class="inp mt-1"></div>
       <div><label class="text-sm font-medium text-gray-700">Description</label>
-        <input id="dm-desc" value="${data?.description||''}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
-      <div><label class="text-sm font-medium text-gray-700">Serial Order (PDF order)</label>
-        <input id="dm-order" type="number" value="${data?.serial_order||99}" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
-      <div><label class="text-sm font-medium text-gray-700">Extraction Fields (one per line)</label>
-        <textarea id="dm-fields" rows="5" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm">${(data?.extraction_fields||[]).join('\n')}</textarea></div>
-      <button onclick="saveDocMaster(${data?.id||'null'})"
-        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">Save</button>
+        <input id="dm-desc" value="${data?.description||''}" class="inp mt-1"></div>
+      <div><label class="text-sm font-medium text-gray-700">Serial Order in PDF</label>
+        <input id="dm-order" type="number" value="${data?.serial_order??99}" class="inp mt-1"></div>
+      <div><label class="text-sm font-medium text-gray-700">Extraction Fields <span class="text-gray-400 text-xs">(one per line)</span></label>
+        <textarea id="dm-fields" rows="5" class="inp mt-1 font-mono text-sm">${(data?.extraction_fields||[]).join('\n')}</textarea></div>
+      <button onclick="saveDocMaster(${data?.id??'null'})" class="btn-primary w-full">Save</button>
     </div>`;
   document.getElementById('modal').classList.remove('hidden');
 }
 
-function editDocMaster(id, name, desc, fields, order) {
-  openDocMasterModal({ id, display_name: name, description: desc, extraction_fields: fields, serial_order: order });
+async function editDocMaster(id){
+  const data = await api('/document-master');
+  const d = data?.find(x=>x.id===id);
+  if(d) openDocMasterModal(d);
 }
 
-async function saveDocMaster(id) {
-  const name   = document.getElementById('dm-name').value.trim();
-  const desc   = document.getElementById('dm-desc').value.trim();
-  const order  = parseInt(document.getElementById('dm-order').value) || 99;
-  const fields = document.getElementById('dm-fields').value.trim().split('\n').map(s=>s.trim()).filter(Boolean);
-  const key    = id === null ? document.getElementById('dm-key').value.trim() : undefined;
-  const payload = { display_name: name, description: desc, serial_order: order, extraction_fields: fields };
-  if (key) payload.doc_key = key;
-  if (id === null) await api('/document-master', { method:'POST', body: JSON.stringify(payload) });
-  else             await api(`/document-master/${id}`, { method:'PUT', body: JSON.stringify(payload) });
-  closeModal();
-  loadDocMaster();
+async function saveDocMaster(id){
+  const payload = {
+    display_name: document.getElementById('dm-name').value.trim(),
+    description:  document.getElementById('dm-desc').value.trim(),
+    serial_order: parseInt(document.getElementById('dm-order').value)||99,
+    extraction_fields: document.getElementById('dm-fields').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
+  };
+  if(id===null) payload.doc_key = document.getElementById('dm-key').value.trim();
+  const r = id===null
+    ? await api('/document-master',{method:'POST',body:JSON.stringify(payload)})
+    : await api(`/document-master/${id}`,{method:'PUT',body:JSON.stringify(payload)});
+  if(r?.success||r?.id){ closeModal(); loadDocMaster(); }
+  else alert(r?.detail||'Save failed');
 }
 
-// ─── APPLICATIONS ────────────────────────────────────────────────
-async function loadApplications() {
-  const status = document.getElementById('filterStatus')?.value || '';
-  const data = await api(`/applications?limit=100${status ? '&status='+status : ''}`);
-  const tbody = document.getElementById('applicationsBody');
-  const statusColors = { incomplete:'bg-orange-100 text-orange-700', complete:'bg-green-100 text-green-700', exported:'bg-purple-100 text-purple-700' };
-  tbody.innerHTML = (data?.applications||[]).map(a => `
+// ── APPLICATIONS ──────────────────────────────────────────────────
+async function loadApplications(){
+  const status = document.getElementById('filterStatus')?.value||'';
+  const data = await api(`/applications?limit=100${status?'&status='+status:''}`);
+  const colors = {incomplete:'bg-orange-100 text-orange-700',complete:'bg-green-100 text-green-700',exported:'bg-purple-100 text-purple-700'};
+  document.getElementById('applicationsBody').innerHTML = (data?.applications||[]).map(a=>`
     <tr class="border-b hover:bg-gray-50">
-      <td class="px-5 py-3 font-mono text-sm font-medium text-blue-700">${a.id}</td>
-      <td class="px-5 py-3">${a.applicant_name || '—'}</td>
-      <td class="px-5 py-3 text-sm text-gray-600">${a.loan_type}</td>
-      <td class="px-5 py-3">
-        <span class="text-xs px-2 py-1 rounded font-medium ${statusColors[a.status]||'bg-gray-100 text-gray-600'}">${a.status}</span>
+      <td class="px-4 py-3 font-mono text-sm font-medium text-blue-700">${esc(a.id)}</td>
+      <td class="px-4 py-3 text-sm">${esc(a.applicant_name||'—')}</td>
+      <td class="px-4 py-3 text-sm text-gray-600">${esc(a.loan_type)}</td>
+      <td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded font-medium ${colors[a.status]||'bg-gray-100 text-gray-600'}">${a.status}</span></td>
+      <td class="px-4 py-3 text-sm text-gray-500">${new Date(a.created_at).toLocaleDateString('en-IN')}</td>
+      <td class="px-4 py-3">
+        <button onclick="deleteApp('${esc(a.id)}')" class="btn-sm" style="background:#fff1f2;color:#be123c">Delete</button>
       </td>
-      <td class="px-5 py-3 text-sm text-gray-500">${new Date(a.created_at).toLocaleDateString('en-IN')}</td>
-      <td class="px-5 py-3">
-        <button onclick="deleteApp('${a.id}')"
-          class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded transition">Delete</button>
-      </td>
-    </tr>
-  `).join('') || '<tr><td colspan="6" class="text-center py-10 text-gray-400">No applications found</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="6" class="text-center py-10 text-gray-400">No applications found</td></tr>';
 }
 
-async function deleteApp(id) {
-  if (!confirm(`Delete application ${id}? This cannot be undone.`)) return;
-  await api(`/applications/${id}`, { method:'DELETE' });
+async function deleteApp(id){
+  if(!confirm(`Delete application ${id}?`)) return;
+  await api(`/applications/${id}`,{method:'DELETE'});
   loadApplications();
 }
 
-// ─── API KEYS ────────────────────────────────────────────────────
-async function loadApiKeys() {
-  const data = await api('/api-keys');
+// ── API KEYS ──────────────────────────────────────────────────────
+async function loadApiKeys(){
+  const data = await api('/api-keys'); if(!data)return;
   const el = document.getElementById('apiKeysList');
-  el.innerHTML = (data||[]).map(k => `
-    <div class="bg-white rounded-xl border shadow-sm p-5 flex items-center justify-between">
+  el.innerHTML = !data.length ? '<p class="text-gray-400">No API keys yet.</p>' :
+    data.map(k=>`
+    <div class="bg-white rounded-xl border shadow-sm p-5 flex items-center justify-between gap-4">
       <div>
-        <p class="font-semibold text-gray-800">${k.name}</p>
-        <p class="font-mono text-sm text-gray-500 mt-0.5">${k.api_key}</p>
+        <p class="font-semibold text-gray-800">${esc(k.name)}</p>
+        <p class="font-mono text-sm text-gray-500 mt-0.5">${esc(k.api_key_masked)}</p>
         <p class="text-xs text-gray-400 mt-1">Created ${new Date(k.created_at).toLocaleDateString('en-IN')}</p>
       </div>
-      <div class="flex gap-2">
-        <span class="text-xs px-2 py-1 rounded ${k.is_active ? 'bg-green-100 text-green-700':'bg-red-100 text-red-600'}">${k.is_active?'Active':'Revoked'}</span>
-        ${k.is_active ? `<button onclick="revokeKey(${k.id})" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded transition">Revoke</button>` : ''}
+      <div class="flex gap-2 items-center">
+        <span class="${k.is_active?'badge-active':'badge-inactive'}">${k.is_active?'Active':'Revoked'}</span>
+        ${k.is_active?`<button onclick="revokeKey(${k.id})" class="btn-sm" style="background:#fff1f2;color:#be123c">Revoke</button>`:''}
       </div>
-    </div>
-  `).join('') || '<p class="text-gray-400">No API keys yet</p>';
+    </div>`).join('');
 }
 
-async function createApiKey() {
-  const name = prompt('Enter a name for this API key (e.g. Mobile App, Web Portal):');
-  if (!name) return;
-  const r = await api('/api-keys', { method:'POST', body: JSON.stringify({ name }) });
-  if (r?.api_key) {
-    alert(`✅ API Key created!\n\n${r.api_key}\n\n⚠️ Save this key — it won't be shown again!`);
-  }
-  loadApiKeys();
-}
-
-async function revokeKey(id) {
-  if (!confirm('Revoke this API key? Apps using it will stop working.')) return;
-  await api(`/api-keys/${id}`, { method:'DELETE' });
-  loadApiKeys();
-}
-
-
-// ─── AI PROVIDERS ─────────────────────────────────────────────────
-async function loadAIProviders() {
-  const data = await api('/ai-providers');
-  const el = document.getElementById('aiProvidersList');
-  el.innerHTML = (data||[]).map(p => `
-    <div class="bg-white rounded-xl border shadow-sm p-5">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-bold text-gray-800">${p.provider_name}</span>
-            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-mono">${p.request_format}</span>
-            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">${p.provider_type}</span>
-            <span class="text-xs px-2 py-0.5 rounded ${p.is_active ? 'bg-green-100 text-green-700':'bg-red-100 text-red-600'}">${p.is_active?'Active':'Inactive'}</span>
+async function createApiKey(){
+  const name = prompt('Name for this API key (e.g. Mobile App, Web Portal):');
+  if(!name||!name.trim()) return;
+  const r = await api('/api-keys',{method:'POST',body:JSON.stringify({name:name.trim()})});
+  if(r?.api_key){
+    // Show with copy button
+    document.getElementById('modalTitle').textContent = '🔑 New API Key Created';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Copy this key now — it will not be shown again!</p>
+          <div class="flex gap-2">
+            <input id="new-key-val" type="text" value="${esc(r.api_key)}" readonly
+              class="inp flex-1 font-mono text-sm bg-white select-all">
+            <button onclick="copyKey()" class="btn-primary" style="white-space:nowrap">📋 Copy</button>
           </div>
-          <p class="text-sm text-gray-600 mt-1"><b>Model:</b> <span class="font-mono">${p.model_name}</span></p>
-          <p class="text-xs text-gray-500 mt-1 break-all"><b>URL:</b> ${p.base_url || 'default for format'}</p>
-          <p class="text-xs text-gray-500 mt-1"><b>Priority:</b> ${p.priority} · <b>Key:</b> ${p.has_api_key ? p.api_key_masked : 'not saved'}</p>
-          ${p.notes ? `<p class="text-xs text-gray-400 mt-1">${p.notes}</p>` : ''}
+          <p id="copy-confirm" class="text-green-600 text-xs mt-2 hidden">✅ Copied to clipboard!</p>
         </div>
-        <div class="flex gap-2 shrink-0">
-          <button onclick="activateAIProvider(${p.id})" class="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1 rounded transition">Activate</button>
-          <button onclick='openAIProviderModal(${JSON.stringify(p).replace(/'/g,"&#39;")})' class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded transition">Edit</button>
-          <button onclick="deleteAIProvider(${p.id})" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded transition">Delete</button>
-        </div>
-      </div>
-    </div>`).join('') || '<p class="text-gray-400">No AI providers yet. Add one.</p>';
+        <p class="text-sm text-gray-600">Use this key as the <code class="bg-gray-100 px-1 rounded">X-API-Key</code> header in all API requests.</p>
+        <button onclick="closeModal();loadApiKeys()" class="btn-primary w-full">Done</button>
+      </div>`;
+    document.getElementById('modal').classList.remove('hidden');
+  }
 }
 
-function openAIProviderModal(p=null) {
-  document.getElementById('modalTitle').textContent = p ? 'Edit AI Provider' : 'Add AI Provider';
-  document.getElementById('modalBody').innerHTML = `
-    <div class="space-y-4">
-      <div><label class="text-sm font-medium text-gray-700">Provider Name</label><input id="aip-name" value="${p?.provider_name||''}" placeholder="OpenRouter / Gemini / Claude" class="mt-1 w-full border rounded-lg px-3 py-2"></div>
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-sm font-medium text-gray-700">Provider Type</label><select id="aip-type" class="mt-1 w-full border rounded-lg px-3 py-2"><option value="vision">vision</option><option value="text">text</option><option value="both">both</option></select></div>
-        <div><label class="text-sm font-medium text-gray-700">Request Format</label><select id="aip-format" class="mt-1 w-full border rounded-lg px-3 py-2"><option value="openai">openai</option><option value="anthropic">anthropic</option><option value="gemini">gemini</option><option value="custom">custom</option></select></div>
-      </div>
-      <div><label class="text-sm font-medium text-gray-700">Model Name</label><input id="aip-model" value="${p?.model_name||''}" placeholder="gpt-4o-mini / gemini-2.5-flash / claude..." class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm"></div>
-      <div><label class="text-sm font-medium text-gray-700">Base URL</label><input id="aip-url" value="${p?.base_url||''}" placeholder="OpenAI-compatible chat/completions URL, Gemini generateContent URL, etc." class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm"></div>
-      <div><label class="text-sm font-medium text-gray-700">API Key</label><input id="aip-key" type="password" placeholder="${p?.has_api_key ? 'Blank = keep existing key' : 'Paste API key'}" class="mt-1 w-full border rounded-lg px-3 py-2 font-mono text-sm"><p class="text-xs text-gray-500 mt-1">Blank chhodne par existing key same rahegi.</p></div>
-      <div class="grid grid-cols-2 gap-3"><div><label class="text-sm font-medium text-gray-700">Priority</label><input id="aip-priority" type="number" value="${p?.priority||1}" class="mt-1 w-full border rounded-lg px-3 py-2"></div><label class="flex items-end gap-2 text-sm text-gray-700 pb-2"><input id="aip-active" type="checkbox" ${p?.is_active ? 'checked' : ''}> Active</label></div>
-      <div><label class="text-sm font-medium text-gray-700">Notes</label><input id="aip-notes" value="${p?.notes||''}" class="mt-1 w-full border rounded-lg px-3 py-2"></div>
-      <button onclick="saveAIProvider(${p?.id||'null'})" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">Save Provider</button>
-    </div>`;
-  document.getElementById('modal').classList.remove('hidden');
-  if (p) { document.getElementById('aip-type').value=p.provider_type; document.getElementById('aip-format').value=p.request_format; }
+function copyKey(){
+  const val = document.getElementById('new-key-val').value;
+  navigator.clipboard.writeText(val).then(()=>{
+    document.getElementById('copy-confirm').classList.remove('hidden');
+  });
 }
 
-async function saveAIProvider(id) {
-  const payload = {provider_name: document.getElementById('aip-name').value.trim(), provider_type: document.getElementById('aip-type').value, request_format: document.getElementById('aip-format').value, model_name: document.getElementById('aip-model').value.trim(), base_url: document.getElementById('aip-url').value.trim(), api_key: document.getElementById('aip-key').value.trim(), priority: parseInt(document.getElementById('aip-priority').value)||1, is_active: document.getElementById('aip-active').checked, notes: document.getElementById('aip-notes').value.trim()};
-  if (!payload.provider_name || !payload.model_name) { alert('Provider name and model required'); return; }
-  if (id === null) await api('/ai-providers', {method:'POST', body: JSON.stringify(payload)});
-  else await api(`/ai-providers/${id}`, {method:'PUT', body: JSON.stringify(payload)});
-  closeModal(); loadAIProviders();
+async function revokeKey(id){
+  if(!confirm('Revoke this API key?')) return;
+  await api(`/api-keys/${id}`,{method:'DELETE'});
+  loadApiKeys();
 }
-async function activateAIProvider(id) { await api(`/ai-providers/${id}/activate`, {method:'POST'}); loadAIProviders(); }
-async function deleteAIProvider(id) { if (!confirm('Delete this AI provider?')) return; await api(`/ai-providers/${id}`, {method:'DELETE'}); loadAIProviders(); }
 
-// ─── MODAL ───────────────────────────────────────────────────────
-function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+// ── UTILS ─────────────────────────────────────────────────────────
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function togglePwd(id){ const el=document.getElementById(id); el.type=el.type==='password'?'text':'password'; }
 
-// ─── INIT ────────────────────────────────────────────────────────
-if (TOKEN) {
+// ── INIT ──────────────────────────────────────────────────────────
+if(TOKEN){
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
   document.getElementById('mainApp').classList.add('flex');

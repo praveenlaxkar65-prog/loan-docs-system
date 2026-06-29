@@ -115,18 +115,20 @@ def set_setting(db, key: str, value: str, is_secret: bool = False):
 class AIProvider(Base):
     __tablename__ = "ai_providers"
 
-    id             = Column(Integer, primary_key=True, index=True)
-    provider_name  = Column(String, nullable=False)
-    provider_type  = Column(String, default="vision")
-    request_format = Column(String, default="openai")
-    api_key        = Column(Text, default="")
-    base_url       = Column(Text, default="")
-    model_name     = Column(String, default="")
-    priority       = Column(Integer, default=1)
-    is_active      = Column(Boolean, default=True)
-    notes          = Column(Text, default="")
-    created_at     = Column(DateTime, default=datetime.utcnow)
-    updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id              = Column(Integer, primary_key=True, index=True)
+    provider_name   = Column(String, nullable=False)
+    provider_type   = Column(String, default="vision")      # vision / text / both
+    request_format  = Column(String, default="openai")      # anthropic / openai / gemini / custom
+    api_key         = Column(Text, default="")
+    base_url        = Column(Text, default="")
+    model_name      = Column(String, default="")
+    priority        = Column(Integer, default=1)            # lower = tried first
+    is_active       = Column(Boolean, default=True)
+    timeout_seconds = Column(Float, default=90.0)           # per-request timeout
+    retry_count     = Column(Integer, default=0)            # retries before fallback (0 = no retry)
+    notes           = Column(Text, default="")              # extra headers: "X-Key: val" lines
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def masked_key(self):
         key = self.api_key or ""
@@ -177,15 +179,43 @@ def _seed_defaults(db):
     # ── AI Providers ──────────────────────────────────────────────
     if db.query(AIProvider).count() == 0:
         db.add(AIProvider(
-            provider_name="OpenRouter Vision",
+            provider_name="Claude Vision (Anthropic)",
+            provider_type="vision",
+            request_format="anthropic",
+            api_key="",
+            base_url="https://api.anthropic.com/v1/messages",
+            model_name="claude-sonnet-4-6",
+            priority=1,
+            is_active=False,
+            timeout_seconds=90.0,
+            retry_count=0,
+            notes="Get your API key at https://console.anthropic.com\nSet api_key and activate from Admin → AI Providers.",
+        ))
+        db.add(AIProvider(
+            provider_name="AI Gateway (Google Apps Script)",
+            provider_type="vision",
+            request_format="openai",
+            api_key="",
+            base_url="",
+            model_name="",
+            priority=2,
+            is_active=False,
+            timeout_seconds=120.0,
+            retry_count=1,
+            notes="Set base_url to your Google Apps Script deployment URL.\nSet api_key to your gateway Bearer token if required.\nExtra headers go here as: X-Header-Name: value",
+        ))
+        db.add(AIProvider(
+            provider_name="OpenRouter (Gemini Flash)",
             provider_type="vision",
             request_format="openai",
             api_key="",
             base_url="https://openrouter.ai/api/v1/chat/completions",
             model_name="google/gemini-2.5-flash",
-            priority=1,
+            priority=3,
             is_active=False,
-            notes="Example only. Add your key and activate from Admin → AI Providers."
+            timeout_seconds=60.0,
+            retry_count=0,
+            notes="Get key at https://openrouter.ai\nSet api_key and activate.",
         ))
 
     # ── Document Master ──────────────────────────────────────────────

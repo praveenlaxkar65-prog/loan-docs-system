@@ -285,9 +285,12 @@ async def _process_single_file(
     master = db.query(DocumentMaster).filter(DocumentMaster.doc_key == doc_key).first()
     serial = master.serial_order if master else 999
 
-    # 5. Duplicate handling:
-    # known doc_key ho to replace same doc_key, unknown ho to multiple unknown files allow
-    if doc_key != "unknown":
+    # 5. Duplicate handling: if doc_key is a known required doc, replace existing.
+    # For "unknown", allow multiple (don't replace).
+    loan_type_obj = db.query(LoanType).filter(LoanType.code == loan_type_code).first()
+    required_keys = set(loan_type_obj.get_required_docs()) if loan_type_obj else set()
+
+    if doc_key != "unknown" and doc_key in required_keys:
         existing = db.query(Document).filter(
             Document.application_id == application_id,
             Document.doc_key == doc_key

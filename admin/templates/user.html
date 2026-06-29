@@ -1,234 +1,566 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LoanDocs User Panel</title>
-  <style>
-    :root { --bg:#f5f7fb; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --ok:#16a34a; --bad:#dc2626; --line:#e5e7eb; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
-    header { background:#111827; color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-    header h1 { margin:0; font-size:22px; }
-    header a { color:#bfdbfe; text-decoration:none; }
-    main { max-width:1100px; margin:22px auto; padding:0 14px; }
-    .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 8px 22px rgba(0,0,0,.04); }
-    .full { grid-column: 1 / -1; }
-    h2 { margin:0 0 14px; font-size:18px; }
-    label { display:block; font-size:13px; color:var(--muted); margin:10px 0 6px; }
-    input, select, textarea { width:100%; padding:11px 12px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; background:#fff; }
-    button { border:0; border-radius:10px; padding:11px 14px; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; margin-top:12px; }
-    button.secondary { background:#374151; }
-    button.green { background:var(--ok); }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-    .row { display:flex; gap:10px; align-items:center; }
-    .row > * { flex:1; }
-    .muted { color:var(--muted); font-size:13px; }
-    .pill { display:inline-block; padding:5px 9px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:12px; margin:3px 4px 3px 0; }
-    .ok { color:var(--ok); font-weight:700; }
-    .bad { color:var(--bad); font-weight:700; }
-    pre { background:#0f172a; color:#e5e7eb; padding:12px; border-radius:10px; overflow:auto; max-height:300px; }
-    table { width:100%; border-collapse:collapse; font-size:14px; }
-    th, td { border-bottom:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; }
-    th { color:#374151; background:#f9fafb; }
-    .hidden { display:none; }
-    @media (max-width: 780px) { .grid { grid-template-columns:1fr; } .row{flex-direction:column;} }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LoanDocs — Document Upload</title>
+<style>
+  :root {
+    --bg: #f0f4ff;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: #0f172a; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header .logo { color: #fff; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  header .logo span { color: #60a5fa; }
+  header a { color: #94a3b8; font-size: 13px; text-decoration: none; }
+  header a:hover { color: #fff; }
+
+  /* WRAPPER */
+  .wrapper { max-width: 860px; margin: 0 auto; padding: 32px 16px 60px; }
+
+  /* STEP INDICATOR */
+  .steps { display: flex; gap: 0; margin-bottom: 32px; border-radius: 12px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  .step { flex: 1; padding: 14px 10px; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); border-right: 1px solid var(--border); cursor: default; transition: all .2s; }
+  .step:last-child { border-right: none; }
+  .step.active { background: var(--primary); color: #fff; }
+  .step.done { background: #f0fdf4; color: var(--success); }
+  .step .num { display: block; font-size: 18px; font-weight: 800; margin-bottom: 2px; }
+
+  /* CARD */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,.06); margin-bottom: 20px; }
+  .card h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #1e293b; }
+
+  /* FORM ELEMENTS */
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; margin-top: 16px; }
+  label:first-of-type { margin-top: 0; }
+  input, select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; background: #f9fafb; color: var(--text); outline: none; transition: border .15s; }
+  input:focus, select:focus { border-color: var(--primary); background: #fff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .row2 { grid-template-columns: 1fr; } }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: 10px; padding: 13px 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .15s; width: 100%; margin-top: 20px; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+  .btn-outline:hover { background: var(--primary); color: #fff; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* UPLOAD ZONE */
+  .upload-zone { border: 2.5px dashed #93c5fd; border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; background: #eff6ff; transition: all .2s; position: relative; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: #dbeafe; }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone .icon { font-size: 40px; margin-bottom: 10px; }
+  .upload-zone p { color: var(--muted); font-size: 14px; }
+  .upload-zone strong { color: var(--primary); }
+
+  /* PREVIEW GRID */
+  .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-top: 16px; }
+  .preview-item { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: #f9fafb; aspect-ratio: 4/3; }
+  .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+  .preview-item .remove { position: absolute; top: 5px; right: 5px; background: rgba(220,38,38,.85); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .preview-item .name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .preview-item.pdf-thumb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .preview-item.pdf-thumb .pdf-icon { font-size: 32px; }
+
+  /* PROGRESS */
+  .progress-wrap { margin-top: 20px; }
+  .progress-label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .progress-bar-bg { height: 10px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, #2563eb, #60a5fa); border-radius: 99px; transition: width .4s; }
+  .progress-steps { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .pstep { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+  .pstep .dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .pstep.done-p .dot { background: var(--success); border-color: var(--success); color: #fff; }
+  .pstep.active-p .dot { background: var(--primary); border-color: var(--primary); color: #fff; animation: pulse 1s infinite; }
+  .pstep.done-p { color: var(--text); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.6; } }
+
+  /* CHECKLIST */
+  .checklist { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; font-size: 14px; border: 1.5px solid var(--border); }
+  .check-item.uploaded { background: #f0fdf4; border-color: #bbf7d0; }
+  .check-item.missing { background: #fff7ed; border-color: #fed7aa; }
+  .check-icon { font-size: 18px; flex-shrink: 0; }
+  .check-name { flex: 1; font-weight: 500; }
+  .check-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
+  .badge-up { background: #dcfce7; color: #15803d; }
+  .badge-miss { background: #ffedd5; color: #9a3412; }
+
+  /* RESULTS TABLE */
+  .results-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  .results-table th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid var(--border); }
+  .results-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .results-table tr:hover td { background: #f8fafc; }
+  .conf-bar { height: 6px; border-radius: 99px; background: #e5e7eb; width: 80px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+  .conf-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #f59e0b, #16a34a); }
+
+  /* EXTRACTED FIELDS */
+  .fields-grid { display: flex; flex-direction: column; gap: 4px; }
+  .field-row { display: flex; gap: 6px; }
+  .field-key { color: var(--muted); font-size: 12px; min-width: 120px; }
+  .field-val { font-weight: 600; font-size: 12px; color: #1e293b; }
+
+  /* STATUS BAR */
+  .status-bar { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; margin-bottom: 20px; }
+  .status-bar.complete { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: var(--success); }
+  .status-bar.incomplete { background: #fff7ed; border: 1.5px solid #fed7aa; color: var(--warning); }
+  .status-bar .progress-pct { margin-left: auto; font-size: 22px; font-weight: 800; }
+
+  /* APP ID BADGE */
+  .app-id-badge { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .app-id-badge .id { font-family: monospace; font-size: 16px; font-weight: 700; color: var(--primary); flex: 1; }
+  .app-id-badge button { font-size: 12px; padding: 5px 12px; border: none; border-radius: 8px; background: var(--primary); color: #fff; cursor: pointer; font-weight: 600; }
+
+  /* HIDDEN */
+  .hidden { display: none !important; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 999; transform: translateY(80px); opacity: 0; transition: all .3s; max-width: 320px; }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: var(--success); }
+  #toast.error { background: var(--danger); }
+
+  /* PDF btn */
+  .pdf-btn { background: #7c3aed; color: #fff; }
+  .pdf-btn:hover { background: #6d28d9; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>LoanDocs User Panel</h1>
-    <div><a href="/admin/">Admin</a> · <a href="/docs">Docs</a></div>
-  </header>
 
-  <main class="grid">
-    <section class="card full">
-      <h2>1) API Key</h2>
-      <div class="row">
-        <input id="apiKey" type="password" placeholder="Paste x-api-key here" />
-        <button class="secondary" onclick="saveApiKey()">Save Key</button>
-        <button onclick="loadLoanTypes()">Load Loan Types</button>
+<header>
+  <div class="logo">🏦 <span>LoanDocs</span></div>
+  <a href="/admin/">Admin Panel →</a>
+</header>
+
+<div class="wrapper">
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="st1"><span class="num">1</span>Application</div>
+    <div class="step" id="st2"><span class="num">2</span>Upload Docs</div>
+    <div class="step" id="st3"><span class="num">3</span>Processing</div>
+    <div class="step" id="st4"><span class="num">4</span>Results</div>
+  </div>
+
+  <!-- STEP 1: CREATE APPLICATION -->
+  <div id="sec-create" class="card">
+    <h2>📋 New Loan Application</h2>
+    <label>Loan Type</label>
+    <select id="loanType">
+      <option value="home_loan">Home Loan</option>
+      <option value="personal_loan">Personal Loan</option>
+      <option value="business_loan">Business Loan</option>
+    </select>
+    <div class="row2">
+      <div>
+        <label>Applicant Name *</label>
+        <input id="applicantName" placeholder="Full name" />
       </div>
-      <p class="muted">API key Admin Panel → API Keys se milegi. Browser localStorage me save hogi.</p>
-    </section>
-
-    <section class="card">
-      <h2>2) Create Application</h2>
-      <label>Loan Type</label>
-      <select id="loanType"><option value="">Load loan types first</option></select>
-      <label>Applicant Name</label>
-      <input id="applicantName" placeholder="e.g. Test User" />
-      <div class="row">
-        <div><label>Phone</label><input id="applicantPhone" placeholder="optional" /></div>
-        <div><label>Email</label><input id="applicantEmail" placeholder="optional" /></div>
+      <div>
+        <label>Phone</label>
+        <input id="applicantPhone" placeholder="Mobile number" />
       </div>
-      <button onclick="createApplication()">Create Application</button>
-      <p class="muted">Created Application ID:</p>
-      <input id="currentAppId" placeholder="Application ID will appear here; or paste existing ID" />
-    </section>
+    </div>
+    <label>Email</label>
+    <input id="applicantEmail" placeholder="Email address (optional)" />
+    <button class="btn btn-primary" onclick="createApplication()">
+      Create Application →
+    </button>
+  </div>
 
-    <section class="card">
-      <h2>3) Upload Documents</h2>
-      <label>Choose files / camera images</label>
-      <input id="files" type="file" multiple accept="image/*,application/pdf" />
-      <label>Camera capture</label>
-      <input id="cameraFile" type="file" accept="image/*" capture="environment" />
-      <button class="green" onclick="uploadDocuments()">Upload & Process</button>
-      <p class="muted">JPEG/PNG/PDF upload ho sakta hai. Mobile browser me camera option bhi dikhega.</p>
-    </section>
+  <!-- STEP 2: UPLOAD -->
+  <div id="sec-upload" class="card hidden">
+    <h2>📂 Upload Documents</h2>
 
-    <section class="card full">
-      <h2>4) Status / Missing / PDF</h2>
-      <div class="row">
-        <button onclick="getStatus()">Refresh Status</button>
-        <button class="secondary" onclick="downloadPdf()">Download Final PDF</button>
+    <div class="app-id-badge">
+      <span>Application ID:</span>
+      <span class="id" id="appIdDisplay">—</span>
+      <button onclick="copyAppId()">Copy</button>
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" multiple accept="image/*,application/pdf" onchange="onFilesSelected(this.files)" />
+      <div class="icon">📄</div>
+      <p><strong>Click to browse</strong> or drag & drop files here</p>
+      <p style="margin-top:6px;font-size:12px;">JPEG · PNG · PDF · Camera photos supported</p>
+    </div>
+
+    <div id="previewGrid" class="preview-grid"></div>
+
+    <button class="btn btn-success hidden" id="uploadBtn" onclick="uploadDocuments()">
+      ⬆️ Upload & Process (<span id="fileCount">0</span> files)
+    </button>
+  </div>
+
+  <!-- STEP 3: PROCESSING -->
+  <div id="sec-processing" class="card hidden">
+    <h2>⚙️ Processing Documents...</h2>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="prog-label">Starting...</span>
+        <span id="prog-pct">0%</span>
       </div>
-      <div id="statusBox" style="margin-top:14px"></div>
-    </section>
+      <div class="progress-bar-bg">
+        <div class="progress-bar" id="progBar" style="width:0%"></div>
+      </div>
+      <div class="progress-steps" id="progSteps">
+        <div class="pstep" id="ps1"><div class="dot">1</div> Uploading files to server</div>
+        <div class="pstep" id="ps2"><div class="dot">2</div> Enhancing & cropping images</div>
+        <div class="pstep" id="ps3"><div class="dot">3</div> AI document recognition</div>
+        <div class="pstep" id="ps4"><div class="dot">4</div> Extracting fields (name, DOB, etc.)</div>
+        <div class="pstep" id="ps5"><div class="dot">5</div> Saving to secure storage</div>
+      </div>
+    </div>
+  </div>
 
-    <section class="card full">
-      <h2>Response / Error Log</h2>
-      <pre id="log">Ready.</pre>
-    </section>
-  </main>
+  <!-- STEP 4: RESULTS -->
+  <div id="sec-results" class="hidden">
+
+    <!-- Status bar -->
+    <div id="statusBar" class="status-bar incomplete">
+      <span id="statusIcon">⏳</span>
+      <span id="statusText">Loading...</span>
+      <span class="progress-pct" id="statusPct">0%</span>
+    </div>
+
+    <!-- Checklist -->
+    <div class="card">
+      <h2>📋 Document Checklist</h2>
+      <div class="checklist" id="checklist"></div>
+    </div>
+
+    <!-- Extracted Data -->
+    <div class="card">
+      <h2>🔍 Extracted Document Data</h2>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Confidence</th>
+            <th>Extracted Fields</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <h2>⬇️ Export & Actions</h2>
+      <div class="row2">
+        <button class="btn btn-outline" onclick="goToUpload()">+ Upload More Documents</button>
+        <button class="btn pdf-btn" onclick="downloadPdf()">📄 Download Final PDF</button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="resetAll()">🆕 New Application</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div id="toast"></div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
+// ─── CONFIG ──────────────────────────────────────────────────────
+const API_KEY = 'ld_Ef9oYD3C6wj9jmpFaQja19c7GssfUtAp-ZGDP-G0uxY';
+let currentAppId = '';
+let selectedFiles = [];
 
-  function apiKey() {
-    return $('apiKey').value.trim();
-  }
-  function headersJson() {
-    return { 'Content-Type': 'application/json', 'x-api-key': apiKey() };
-  }
-  function headersOnly() {
-    return { 'x-api-key': apiKey() };
-  }
-  function log(data) {
-    $('log').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-  }
-  function requireKey() {
-    if (!apiKey()) { alert('Pehle API key daal/save kar.'); return false; }
-    return true;
-  }
-  function saveApiKey() {
-    localStorage.setItem('loandocs_api_key', apiKey());
-    log('API key saved in this browser.');
-  }
+// ─── HELPERS ─────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function h(id) { $(id).classList.add('hidden'); }
+function s(id) { $(id).classList.remove('hidden'); }
+function headers() { return { 'x-api-key': API_KEY }; }
 
-  async function loadLoanTypes() {
-    if (!requireKey()) return;
-    try {
-      const res = await fetch('/api/v1/loan-types', { headers: headersOnly() });
-      const data = await res.json();
-      if (!res.ok) throw data;
-      const select = $('loanType');
-      select.innerHTML = '';
-      (data.loan_types || []).forEach(lt => {
-        const opt = document.createElement('option');
-        opt.value = lt.code;
-        opt.textContent = `${lt.name} (${lt.code})`;
-        select.appendChild(opt);
-      });
-      log(data);
-    } catch (e) { log(e); alert('Loan types load nahi hue. API key check kar.'); }
+function toast(msg, type='') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3000);
+}
+
+function setStep(n) {
+  for(let i=1;i<=4;i++) {
+    const el = $('st'+i);
+    el.className = 'step' + (i<n?' done':(i===n?' active':''));
   }
+}
 
-  async function createApplication() {
-    if (!requireKey()) return;
-    const fd = new FormData();
-    fd.append('loan_type_code', $('loanType').value);
-    fd.append('applicant_name', $('applicantName').value.trim());
-    fd.append('applicant_phone', $('applicantPhone').value.trim());
-    fd.append('applicant_email', $('applicantEmail').value.trim());
-    try {
-      const res = await fetch('/api/v1/applications/create', { method:'POST', headers: headersOnly(), body: fd });
-      const data = await res.json();
-      if (!res.ok) throw data;
-      $('currentAppId').value = data.application_id || '';
-      log(data);
-      await getStatus();
-    } catch (e) { log(e); alert('Application create nahi hui. Log dekho.'); }
+function copyAppId() {
+  navigator.clipboard.writeText(currentAppId);
+  toast('App ID copied!', 'success');
+}
+
+// ─── STEP 1: LOAD LOAN TYPES ──────────────────────────────────────
+async function loadLoanTypes() {
+  try {
+    const r = await fetch('/api/v1/loan-types', { headers: headers() });
+    const d = await r.json();
+    if(!r.ok) return;
+    const sel = $('loanType');
+    sel.innerHTML = '';
+    (d.loan_types||[]).forEach(lt => {
+      const o = document.createElement('option');
+      o.value = lt.code;
+      o.textContent = lt.name;
+      sel.appendChild(o);
+    });
+  } catch(e) {}
+}
+
+// ─── STEP 1: CREATE APPLICATION ───────────────────────────────────
+async function createApplication() {
+  const name = $('applicantName').value.trim();
+  if(!name) { toast('Please enter applicant name', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('loan_type_code', $('loanType').value);
+  fd.append('applicant_name', name);
+  fd.append('applicant_phone', $('applicantPhone').value.trim());
+  fd.append('applicant_email', $('applicantEmail').value.trim());
+
+  try {
+    const r = await fetch('/api/v1/applications/create', { method:'POST', headers: headers(), body: fd });
+    const d = await r.json();
+    if(!r.ok) throw d;
+    currentAppId = d.application_id;
+    $('appIdDisplay').textContent = currentAppId;
+    h('sec-create');
+    s('sec-upload');
+    setStep(2);
+    toast('Application created: ' + currentAppId, 'success');
+  } catch(e) {
+    toast('Failed to create application', 'error');
   }
+}
 
-  async function uploadDocuments() {
-    if (!requireKey()) return;
-    const appId = $('currentAppId').value.trim();
-    if (!appId) { alert('Pehle application create karo ya Application ID paste karo.'); return; }
-    const fd = new FormData();
-    fd.append('application_id', appId);
-    const fileInput = $('files');
-    for (const f of fileInput.files) fd.append('files', f);
-    const cam = $('cameraFile');
-    for (const f of cam.files) fd.append('files', f);
-    if (!fd.getAll('files').length) { alert('At least ek file select kar.'); return; }
-
-    log('Uploading and processing...');
-    try {
-      const res = await fetch('/api/v1/upload', { method:'POST', headers: headersOnly(), body: fd });
-      const data = await res.json();
-      if (!res.ok) throw data;
-      log(data);
-      await getStatus();
-    } catch (e) { log(e); alert('Upload/process failed. Log dekho.'); }
-  }
-
-  async function getStatus() {
-    if (!requireKey()) return;
-    const appId = $('currentAppId').value.trim();
-    if (!appId) return;
-    try {
-      const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}`, { headers: headersOnly() });
-      const data = await res.json();
-      if (!res.ok) throw data;
-      renderStatus(data);
-      log(data);
-    } catch (e) { log(e); }
-  }
-
-  function renderStatus(data) {
-    const checklist = data.checklist || {};
-    const missing = checklist.missing_documents || checklist.missing || [];
-    const uploaded = checklist.uploaded_documents || checklist.uploaded || [];
-    const docs = data.documents || [];
-    let html = `<p><b>Application:</b> ${data.application_id} &nbsp; <b>Status:</b> <span class="${data.status === 'complete' ? 'ok':'bad'}">${data.status}</span></p>`;
-    html += `<p><b>Applicant:</b> ${data.applicant_name || '-'} · <b>Loan:</b> ${data.loan_type}</p>`;
-    html += `<p><b>Uploaded:</b> ${(uploaded || []).map(x => `<span class="pill">${x}</span>`).join('') || '-'}</p>`;
-    html += `<p><b>Missing:</b> ${(missing || []).map(x => `<span class="pill">${typeof x === 'string' ? x : (x.display_name || x.doc_key || JSON.stringify(x))}</span>`).join('') || '<span class="ok">None</span>'}</p>`;
-    if (docs.length) {
-      html += `<table><thead><tr><th>Document</th><th>Confidence</th><th>Extracted Fields</th></tr></thead><tbody>`;
-      docs.forEach(d => {
-        html += `<tr><td>${d.doc_display_name || d.doc_key}</td><td>${d.confidence_score ?? '-'}</td><td><pre>${JSON.stringify(d.extracted_fields || {}, null, 2)}</pre></td></tr>`;
-      });
-      html += `</tbody></table>`;
+// ─── STEP 2: FILE SELECTION ───────────────────────────────────────
+function onFilesSelected(newFiles) {
+  for(const f of newFiles) {
+    if(!selectedFiles.find(x=>x.name===f.name && x.size===f.size)) {
+      selectedFiles.push(f);
     }
-    $('statusBox').innerHTML = html;
   }
+  renderPreviews();
+  $('fileInput').value = '';
+}
 
-  async function downloadPdf() {
-    if (!requireKey()) return;
-    const appId = $('currentAppId').value.trim();
-    if (!appId) { alert('Application ID required.'); return; }
-    try {
-      const res = await fetch(`/api/v1/applications/${encodeURIComponent(appId)}/pdf`, { headers: headersOnly() });
-      if (!res.ok) throw await res.text();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${appId}_documents.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) { log(String(e)); alert('PDF download failed. Log dekho.'); }
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    $('apiKey').value = localStorage.getItem('loandocs_api_key') || '';
-    if ($('apiKey').value) loadLoanTypes();
+function renderPreviews() {
+  const grid = $('previewGrid');
+  grid.innerHTML = '';
+  selectedFiles.forEach((f, i) => {
+    const div = document.createElement('div');
+    const isPdf = f.name.toLowerCase().endsWith('.pdf');
+    div.className = 'preview-item' + (isPdf?' pdf-thumb':'');
+    if(isPdf) {
+      div.innerHTML = `<div class="pdf-icon">📄</div><div style="font-size:11px;color:#6b7280;padding:0 6px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%">${f.name}</div><button class="remove" onclick="removeFile(${i})">×</button>`;
+    } else {
+      const url = URL.createObjectURL(f);
+      div.innerHTML = `<img src="${url}" /><button class="remove" onclick="removeFile(${i})">×</button><div class="name">${f.name}</div>`;
+    }
+    grid.appendChild(div);
   });
+
+  $('fileCount').textContent = selectedFiles.length;
+  if(selectedFiles.length > 0) s('uploadBtn');
+  else h('uploadBtn');
+}
+
+function removeFile(i) {
+  selectedFiles.splice(i, 1);
+  renderPreviews();
+}
+
+// Drag & drop
+const zone = $('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  onFilesSelected(e.dataTransfer.files);
+});
+
+// ─── STEP 3: UPLOAD & PROCESS ─────────────────────────────────────
+async function uploadDocuments() {
+  if(!selectedFiles.length) { toast('Select at least one file', 'error'); return; }
+
+  h('sec-upload');
+  s('sec-processing');
+  setStep(3);
+
+  // Animate progress steps
+  const steps = [
+    {id:'ps1', label:'Uploading files...', pct:15},
+    {id:'ps2', label:'Enhancing images...', pct:35},
+    {id:'ps3', label:'AI recognizing documents...', pct:60},
+    {id:'ps4', label:'Extracting fields...', pct:80},
+    {id:'ps5', label:'Saving to storage...', pct:95},
+  ];
+
+  let stepIdx = 0;
+  function nextStep() {
+    if(stepIdx > 0) $('ps'+stepIdx).className = 'pstep done-p';
+    stepIdx++;
+    if(stepIdx <= 5) {
+      $('ps'+stepIdx).className = 'pstep active-p';
+      $('prog-label').textContent = steps[stepIdx-1].label;
+      $('prog-pct').textContent = steps[stepIdx-1].pct + '%';
+      $('progBar').style.width = steps[stepIdx-1].pct + '%';
+    }
+  }
+
+  nextStep();
+  const timer = setInterval(nextStep, 1800);
+
+  const fd = new FormData();
+  fd.append('application_id', currentAppId);
+  selectedFiles.forEach(f => fd.append('files', f));
+
+  try {
+    const r = await fetch('/api/v1/upload', { method:'POST', headers: headers(), body: fd });
+    const d = await r.json();
+    clearInterval(timer);
+    // Complete all steps
+    for(let i=1;i<=5;i++) $('ps'+i).className = 'pstep done-p';
+    $('progBar').style.width = '100%';
+    $('prog-pct').textContent = '100%';
+    $('prog-label').textContent = 'Done!';
+
+    await new Promise(r=>setTimeout(r,600));
+    selectedFiles = [];
+    renderPreviews();
+    showResults();
+  } catch(e) {
+    clearInterval(timer);
+    toast('Upload failed. Check console.', 'error');
+    h('sec-processing');
+    s('sec-upload');
+    setStep(2);
+  }
+}
+
+// ─── STEP 4: RESULTS ─────────────────────────────────────────────
+async function showResults() {
+  h('sec-processing');
+  s('sec-results');
+  setStep(4);
+  await getStatus();
+}
+
+async function getStatus() {
+  try {
+    const r = await fetch(`/api/v1/applications/${encodeURIComponent(currentAppId)}`, { headers: headers() });
+    const d = await r.json();
+    if(!r.ok) throw d;
+    renderResults(d);
+  } catch(e) {
+    toast('Could not load status', 'error');
+  }
+}
+
+function renderResults(data) {
+  const checklist = data.checklist || {};
+  const docStatus = checklist.document_status || [];
+  const docs = data.documents || [];
+  const pct = checklist.completion_percent || 0;
+  const complete = checklist.is_complete;
+
+  // Status bar
+  const bar = $('statusBar');
+  bar.className = 'status-bar ' + (complete ? 'complete' : 'incomplete');
+  $('statusIcon').textContent = complete ? '✅' : '⏳';
+  $('statusText').textContent = complete
+    ? 'All documents uploaded — ready for PDF!'
+    : `${checklist.total_uploaded || 0} of ${checklist.total_required || 0} documents uploaded`;
+  $('statusPct').textContent = pct + '%';
+
+  // Checklist
+  $('checklist').innerHTML = docStatus.map(d => `
+    <div class="check-item ${d.status === 'uploaded' ? 'uploaded' : 'missing'}">
+      <span class="check-icon">${d.status === 'uploaded' ? '✅' : '📭'}</span>
+      <span class="check-name">${d.display_name}</span>
+      <span class="check-badge ${d.status === 'uploaded' ? 'badge-up' : 'badge-miss'}">
+        ${d.status === 'uploaded' ? 'Uploaded' : 'Missing'}
+      </span>
+    </div>
+  `).join('');
+
+  // Results table
+  $('resultsBody').innerHTML = docs.filter(d => d.doc_key !== 'unknown').map(d => {
+    const fields = d.extracted_fields || {};
+    const cleanFields = Object.entries(fields)
+      .filter(([k]) => !k.startsWith('_'))
+      .map(([k,v]) => `<div class="field-row"><span class="field-key">${k.replace(/_/g,' ')}:</span><span class="field-val">${v||'—'}</span></div>`)
+      .join('');
+    const conf = Math.round((d.confidence_score||0)*100);
+    return `
+      <tr>
+        <td><strong>${d.doc_display_name||d.doc_key}</strong></td>
+        <td>
+          <span style="font-weight:700;color:${conf>80?'#16a34a':conf>50?'#d97706':'#dc2626'}">${conf}%</span>
+          <span class="conf-bar"><span class="conf-fill" style="width:${conf}%"></span></span>
+        </td>
+        <td><div class="fields-grid">${cleanFields||'<span style="color:#9ca3af">No fields extracted</span>'}</div></td>
+      </tr>`;
+  }).join('') || '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:20px">No recognized documents yet</td></tr>';
+}
+
+function goToUpload() {
+  h('sec-results');
+  s('sec-upload');
+  $('appIdDisplay').textContent = currentAppId;
+  setStep(2);
+}
+
+async function downloadPdf() {
+  try {
+    toast('Generating PDF...', '');
+    const r = await fetch(`/api/v1/applications/${encodeURIComponent(currentAppId)}/pdf`, { headers: headers() });
+    if(!r.ok) throw await r.text();
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${currentAppId}_documents.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('PDF downloaded!', 'success');
+  } catch(e) {
+    toast('PDF generation failed', 'error');
+  }
+}
+
+function resetAll() {
+  currentAppId = '';
+  selectedFiles = [];
+  $('applicantName').value = '';
+  $('applicantPhone').value = '';
+  $('applicantEmail').value = '';
+  $('previewGrid').innerHTML = '';
+  h('uploadBtn');
+  h('sec-upload'); h('sec-processing'); h('sec-results');
+  s('sec-create');
+  setStep(1);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+loadLoanTypes();
 </script>
 </body>
 </html>
