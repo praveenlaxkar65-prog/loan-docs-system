@@ -398,6 +398,83 @@ async def list_applications(
     }
 
 
+@router.get("/applications/{app_id}/pdf")
+async def admin_download_pdf(app_id: str, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    """Admin can download PDF directly without needing API key."""
+    from fastapi.responses import StreamingResponse
+    import io
+    app = db.query(Application).filter(Application.id == app_id).first()
+    if not app:
+        raise HTTPException(404, "Application not found")
+    from services.pdf_service import generate_application_pdf
+    pdf_bytes = await generate_application_pdf(db, app_id)
+    app.status = "exported"
+    db.commit()
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={app_id}_documents.pdf"},
+    )
+
+
+@router.get("/applications/{app_id}")
+async def get_application_detail(app_id: str, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    """Get full application detail with all extracted fields aggregated."""
+    app = db.query(Application).filter(Application.id == app_id).first()
+    if not app:
+        raise HTTPException(404, "Application not found")
+
+    docs = db.query(Document).filter(Document.application_id == app_id).order_by(Document.serial_order).all()
+    loan_type = db.query(LoanType).filter(LoanType.code == app.loan_type_code).first()
+
+    # Aggregate key fields from all documents
+    aggregated = {
+        "name": None, "dob": None, "gender": None,
+        "aadhaar_number": None, "pan_number": None,
+        "address": None, "pin_code": None,
+        "account_holder": None, "account_number": None,
+        "bank_name": None, "ifsc": None, "average_balance": None,
+        "net_salary": None, "gross_salary": None, "company_name": None,
+        "total_income": None, "assessment_year": None,
+    }
+
+    doc_list = []
+    for d in docs:
+        fields = d.get_extracted_fields()
+        # Merge into aggregated — first non-null wins
+        for key in aggregated:
+            if aggregated[key] is None and fields.get(key):
+                aggregated[key] = fields[key]
+        # Clean fields for display
+        clean = {k: v for k, v in fields.items() if not k.startswith("_") and v is not None}
+        doc_list.append({
+            "id": d.id,
+            "doc_key": d.doc_key,
+            "doc_display_name": d.doc_display_name,
+            "confidence_score": d.confidence_score,
+            "extracted_fields": clean,
+            "uploaded_at": d.uploaded_at.isoformat(),
+            "telegram_file_id": d.telegram_file_id,
+        })
+
+    from services.checklist_service import get_application_status
+    checklist = get_application_status(db, app_id, app.loan_type_code)
+
+    return {
+        "id": app.id,
+        "loan_type_code": app.loan_type_code,
+        "loan_type_name": loan_type.name if loan_type else app.loan_type_code,
+        "applicant_name": app.applicant_name,
+        "applicant_phone": app.applicant_phone,
+        "applicant_email": app.applicant_email,
+        "status": app.status,
+        "created_at": app.created_at.isoformat(),
+        "aggregated_fields": aggregated,
+        "checklist": checklist,
+        "documents": doc_list,
+    }
+
+
 @router.delete("/applications/{app_id}")
 async def delete_application(app_id: str, db: Session = Depends(get_db), _=Depends(get_current_admin)):
     app = db.query(Application).filter(Application.id == app_id).first()

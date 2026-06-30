@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR Test Panel — Document Verification Lab</title>
+<style>
+  :root {
+    --ink: #1a1d1f;
+    --ink-soft: #5b6166;
+    --paper: #f6f4ef;
+    --paper-raised: #ffffff;
+    --line: #d8d4ca;
+    --accent: #b5491c;
+    --accent-soft: #f0e2d8;
+    --good: #2f6f4f;
+    --good-bg: #e7f2ec;
+    --warn: #9c7a16;
+    --warn-bg: #f7eecb;
+    --bad: #a13c34;
+    --bad-bg: #f6e2df;
+    --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'Inter', -apple-system, system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+  }
+
+  header {
+    border-bottom: 1px solid var(--line);
+    padding: 28px 32px 22px;
+    background: var(--paper);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  .panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 1.5px dashed var(--line);
+    border-radius: 4px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: #fbfaf7;
+  }
+
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .dropzone-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+
+  .dropzone-text {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .dropzone-text strong {
+    color: var(--ink);
+  }
+
+  .dropzone-hint {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  #fileInput { display: none; }
+
+  .file-list {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .file-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .file-chip .name {
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .file-chip .remove {
+    cursor: pointer;
+    color: var(--bad);
+    font-weight: 600;
+    background: none;
+    border: none;
+    font-size: 14px;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 18px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  button.primary {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background 0.15s;
+  }
+
+  button.primary:hover { background: var(--accent); }
+  button.primary:disabled { background: var(--line); cursor: not-allowed; }
+
+  /* Loading */
+  .loading-bar {
+    display: none;
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .loading-bar.active { display: block; }
+
+  .loading-bar .dots::after {
+    content: '';
+    animation: dots 1.4s steps(4, end) infinite;
+  }
+
+  @keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+  }
+
+  /* Results */
+  .result-card {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    background: var(--paper-raised);
+  }
+
+  .result-header {
+    padding: 14px 20px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .result-filename {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .page-block {
+    padding: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  .page-block:first-of-type { border-top: none; }
+
+  .images-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .image-col {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .image-col-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+
+  .image-col img {
+    width: 100%;
+    display: block;
+    max-height: 420px;
+    object-fit: contain;
+    background: #222;
+  }
+
+  .doc-result {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+
+  .doc-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .doc-label {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .doc-type-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+
+  .confidence-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .conf-high { background: var(--good-bg); color: var(--good); }
+  .conf-mid  { background: var(--warn-bg); color: var(--warn); }
+  .conf-low  { background: var(--bad-bg);  color: var(--bad); }
+
+  .score-breakdown {
+    display: flex;
+    gap: 16px;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+
+  .score-breakdown span b { color: var(--ink); }
+
+  .fields-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .fields-table td {
+    padding: 9px 16px;
+    border-bottom: 1px solid #ece9e1;
+  }
+
+  .fields-table tr:last-child td { border-bottom: none; }
+
+  .field-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    width: 200px;
+  }
+
+  .field-value {
+    font-weight: 600;
+  }
+
+  .field-conf {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+
+  .warnings {
+    padding: 10px 16px;
+    background: var(--warn-bg);
+    color: var(--warn);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .warnings div { margin-bottom: 2px; }
+
+  .raw-text-toggle {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .raw-text-box {
+    display: none;
+    margin-top: 8px;
+    padding: 12px;
+    background: #1a1d1f;
+    color: #c9d1d9;
+    font-family: var(--mono);
+    font-size: 11px;
+    white-space: pre-wrap;
+    border-radius: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .raw-text-box.open { display: block; }
+
+  .error-banner {
+    background: var(--bad-bg);
+    color: var(--bad);
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+  }
+
+  .empty-state .glyph {
+    font-size: 32px;
+    opacity: 0.3;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 760px) {
+    .images-row { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    header { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Internal · Document Verification</div>
+  <h1>OCR Test Panel</h1>
+  <div class="subtitle">PaddleOCR + keyword classification + regex extraction — isolated sandbox, no production writes</div>
+</header>
+
+<main>
+
+  <div class="panel">
+    <p class="panel-title">Upload</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">⤓</div>
+      <div class="dropzone-text"><strong>Click to upload</strong> or drag files here</div>
+      <div class="dropzone-hint">JPG · PNG · BMP · TIFF · PDF — up to 25MB each, multiple files supported</div>
+    </div>
+    <input type="file" id="fileInput" multiple accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp,.pdf">
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="controls-row">
+      <label class="toggle-row">
+        <input type="checkbox" id="multiDocToggle" checked>
+        Detect multiple documents per image (e.g. PAN + Aadhaar combo)
+      </label>
+      <button class="primary" id="processBtn" disabled>Run OCR Pipeline</button>
+    </div>
+
+    <div class="loading-bar" id="loadingBar">
+      Processing<span class="dots"></span> running OpenCV preprocessing → PaddleOCR → classification → regex extraction
+    </div>
+  </div>
+
+  <div id="resultsContainer">
+    <div class="empty-state">
+      <div class="glyph">▢</div>
+      <div>Upload documents above to see side-by-side extraction results.</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileListEl = document.getElementById('fileList');
+const processBtn = document.getElementById('processBtn');
+const loadingBar = document.getElementById('loadingBar');
+const resultsContainer = document.getElementById('resultsContainer');
+const multiDocToggle = document.getElementById('multiDocToggle');
+
+let selectedFiles = [];
+
+dropzone.addEventListener('click', () => fileInput.click());
+
+dropzone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropzone.classList.add('dragover');
+});
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+
+function addFiles(fileListObj) {
+  for (const f of fileListObj) {
+    if (!selectedFiles.find(sf => sf.name === f.name && sf.size === f.size)) {
+      selectedFiles.push(f);
+    }
+  }
+  renderFileList();
+}
+
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileListEl.innerHTML = '';
+  selectedFiles.forEach((f, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    const sizeKb = (f.size / 1024).toFixed(0);
+    chip.innerHTML = `
+      <span class="name">${f.name} <span style="color:var(--ink-soft)">(${sizeKb} KB)</span></span>
+      <button class="remove" onclick="removeFile(${idx})">✕</button>
+    `;
+    fileListEl.appendChild(chip);
+  });
+  processBtn.disabled = selectedFiles.length === 0;
+}
+
+processBtn.addEventListener('click', async () => {
+  if (selectedFiles.length === 0) return;
+
+  processBtn.disabled = true;
+  loadingBar.classList.add('active');
+  resultsContainer.innerHTML = '';
+
+  const formData = new FormData();
+  selectedFiles.forEach(f => formData.append('files', f));
+  formData.append('multi_doc', multiDocToggle.checked);
+
+  try {
+    const res = await fetch('/test/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    renderResults(data);
+  } catch (err) {
+    resultsContainer.innerHTML = `<div class="error-banner">Request failed: ${err.message}</div>`;
+  } finally {
+    loadingBar.classList.remove('active');
+    processBtn.disabled = false;
+  }
+});
+
+function confidenceClass(score) {
+  if (score >= 0.7) return 'conf-high';
+  if (score >= 0.4) return 'conf-mid';
+  return 'conf-low';
+}
+
+function renderResults(data) {
+  resultsContainer.innerHTML = '';
+
+  if (data.errors && data.errors.length > 0) {
+    data.errors.forEach(err => {
+      const banner = document.createElement('div');
+      banner.className = 'error-banner';
+      banner.textContent = `${err.filename}: ${err.error}`;
+      resultsContainer.appendChild(banner);
+    });
+  }
+
+  if (!data.results || data.results.length === 0) {
+    if (!data.errors || data.errors.length === 0) {
+      resultsContainer.innerHTML += `<div class="empty-state"><div class="glyph">▢</div><div>No results.</div></div>`;
+    }
+    return;
+  }
+
+  data.results.forEach(fileResult => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+
+    const header = document.createElement('div');
+    header.className = 'result-header';
+    header.innerHTML = `
+      <span class="result-filename">${fileResult.filename}</span>
+      <span style="font-family: var(--mono); font-size: 11px; color: var(--ink-soft);">${fileResult.pages.length} page(s)</span>
+    `;
+    card.appendChild(header);
+
+    fileResult.pages.forEach(page => {
+      const pageBlock = document.createElement('div');
+      pageBlock.className = 'page-block';
+
+      // Side by side images
+      const imagesRow = document.createElement('div');
+      imagesRow.className = 'images-row';
+      imagesRow.innerHTML = `
+        <div class="image-col">
+          <div class="image-col-label">Original — page ${page.page_index + 1}</div>
+          <img src="data:image/png;base64,${page.original_b64}" alt="original">
+        </div>
+        <div class="image-col">
+          <div class="image-col-label">Processed (deskew + enhance)</div>
+          <img src="data:image/png;base64,${page.processed_b64}" alt="processed">
+        </div>
+      `;
+      pageBlock.appendChild(imagesRow);
+
+      // Documents detected
+      page.documents.forEach(doc => {
+        const docDiv = document.createElement('div');
+        docDiv.className = 'doc-result';
+
+        const overallPct = (doc.scores.overall * 100).toFixed(0);
+        const confClass = confidenceClass(doc.scores.overall);
+
+        let fieldsHtml = '';
+        const fieldKeys = Object.keys(doc.fields);
+        if (fieldKeys.length > 0) {
+          fieldsHtml = '<table class="fields-table">' + fieldKeys.map(key => {
+            const f = doc.fields[key];
+            return `<tr>
+              <td class="field-name">${key.replace(/_/g, ' ')}</td>
+              <td class="field-value">${escapeHtml(f.value)}</td>
+              <td class="field-conf">${(f.confidence * 100).toFixed(0)}%</td>
+            </tr>`;
+          }).join('') + '</table>';
+        } else {
+          fieldsHtml = '<div style="padding:16px; font-size:13px; color:var(--ink-soft);">No fields extracted via regex.</div>';
+        }
+
+        let warningsHtml = '';
+        if (doc.warnings && doc.warnings.length > 0) {
+          warningsHtml = `<div class="warnings">${doc.warnings.map(w => `<div>⚠ ${w}</div>`).join('')}</div>`;
+        }
+
+        docDiv.innerHTML = `
+          <div class="doc-result-header">
+            <div>
+              <div class="doc-label">${doc.doc_label}</div>
+              <div class="doc-type-tag">${doc.doc_type}</div>
+            </div>
+            <div class="confidence-badge ${confClass}">${overallPct}% confidence</div>
+          </div>
+          <div class="score-breakdown">
+            <span>keyword: <b>${(doc.scores.keyword * 100).toFixed(0)}%</b></span>
+            <span>ocr: <b>${(doc.scores.ocr_confidence * 100).toFixed(0)}%</b></span>
+            <span>regex: <b>${(doc.scores.regex * 100).toFixed(0)}%</b></span>
+          </div>
+          ${fieldsHtml}
+          ${warningsHtml}
+        `;
+        pageBlock.appendChild(docDiv);
+      });
+
+      // Raw text toggle
+      const rawToggle = document.createElement('div');
+      rawToggle.className = 'raw-text-toggle';
+      rawToggle.textContent = '▸ Show raw OCR text';
+      const rawBox = document.createElement('div');
+      rawBox.className = 'raw-text-box';
+      rawBox.textContent = page.ocr_raw_text || '(empty)';
+      rawToggle.addEventListener('click', () => {
+        rawBox.classList.toggle('open');
+        rawToggle.textContent = rawBox.classList.contains('open') ? '▾ Hide raw OCR text' : '▸ Show raw OCR text';
+      });
+      pageBlock.appendChild(rawToggle);
+      pageBlock.appendChild(rawBox);
+
+      card.appendChild(pageBlock);
+    });
+
+    resultsContainer.appendChild(card);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>

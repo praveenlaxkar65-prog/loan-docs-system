@@ -1,34 +1,49 @@
 """
 services/image_service.py — Auto crop, deskew, enhance images
-Conservative crop — prefer full document over aggressive edge detection.
 """
 import io
 import math
 import numpy as np
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 from config import MAX_IMAGE_DIMENSION, ENHANCED_IMAGE_QUALITY
 
 
 def process_image(file_bytes: bytes, filename: str) -> bytes:
+    """
+    Full pipeline:
+      1. Decode / convert to RGB
+      2. Resize if too large
+      3. Deskew
+      4. Auto-crop (detect document edges)
+      5. Enhance (contrast + sharpness)
+      6. Return as JPEG bytes
+    """
     img = _load_image(file_bytes, filename)
     img = _resize_if_large(img)
     img = _deskew(img)
-    img = _conservative_crop(img)
+    img = _auto_crop(img)
     img = _enhance(img)
     return _to_jpeg_bytes(img)
 
 
+# ──────────────────────────────────────────────────────────────────
+# PRIVATE HELPERS
+# ──────────────────────────────────────────────────────────────────
+
 def _load_image(file_bytes: bytes, filename: str) -> Image.Image:
-    ext = (filename.rsplit(".", 1)[-1] if "." in filename else "").lower()
+    """Load image from bytes; handle PDF first page separately."""
+    ext = filename.rsplit(".", 1)[-1].lower()
     if ext == "pdf":
+        # Convert first page of PDF to image using PyMuPDF
         import fitz
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         page = doc[0]
-        mat = fitz.Matrix(2, 2)
+        mat = fitz.Matrix(2, 2)          # 2x zoom for quality
         pix = page.get_pixmap(matrix=mat)
         img_bytes = pix.tobytes("jpeg")
         return Image.open(io.BytesIO(img_bytes)).convert("RGB")
+
     img = Image.open(io.BytesIO(file_bytes))
     if img.mode in ("RGBA", "P", "LA"):
         bg = Image.new("RGB", img.size, (255, 255, 255))
@@ -46,91 +61,79 @@ def _resize_if_large(img: Image.Image) -> Image.Image:
 
 
 def _deskew(img: Image.Image) -> Image.Image:
+    """Detect skew angle via Hough lines and rotate to correct."""
     try:
         cv_img = _pil_to_cv(img)
-        gray  = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-        lines = cv2.HoughLines(edges, 1, np.pi / 180, threshold=120)
+        gray   = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+        edges  = cv2.Canny(gray, 50, 150, apertureSize=3)
+        lines  = cv2.HoughLines(edges, 1, np.pi / 180, threshold=100)
+
         if lines is None:
             return img
+
         angles = []
-        for line in lines[:30]:
+        for line in lines[:20]:
             rho, theta = line[0]
             angle = math.degrees(theta) - 90
-            if -15 < angle < 15 and abs(angle) > 1:
+            if -45 < angle < 45:
                 angles.append(angle)
+
         if not angles:
             return img
+
         median_angle = float(np.median(angles))
-        if abs(median_angle) < 1 or abs(median_angle) > 15:
+        if abs(median_angle) < 0.5:        # negligible skew
             return img
+
         return img.rotate(-median_angle, expand=True, fillcolor=(255, 255, 255))
     except Exception:
-        return img
+        return img                          # silently skip on error
 
 
-def _conservative_crop(img: Image.Image) -> Image.Image:
+def _auto_crop(img: Image.Image) -> Image.Image:
+    """
+    Detect the largest quadrilateral (document) in the image
+    and perspective-crop it. Falls back to simple border trim.
+    """
     try:
-        w, h = img.size
-        min_area = w * h * 0.60
-        cv_img  = _pil_to_cv(img)
-        gray    = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-        edges   = cv2.Canny(blurred, 20, 80)
-        kernel  = np.ones((7, 7), np.uint8)
-        dilated = cv2.dilate(edges, kernel, iterations=2)
-        contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv_img = _pil_to_cv(img)
+        gray   = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        edges  = cv2.Canny(blurred, 30, 100)
+        kernel = np.ones((5, 5), np.uint8)
+        edges  = cv2.dilate(edges, kernel, iterations=1)
+
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
-            return _trim_white_border(img)
+            return _trim_borders(img)
+
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        for c in contours[:3]:
-            area = cv2.contourArea(c)
-            if area < min_area:
-                break
-            peri   = cv2.arcLength(c, True)
+        doc_contour = None
+
+        for c in contours[:5]:
+            peri = cv2.arcLength(c, True)
             approx = cv2.approxPolyDP(c, 0.02 * peri, True)
             if len(approx) == 4:
-                pts    = approx.reshape(4, 2).astype("float32")
-                warped = _four_point_transform(cv_img, pts)
-                ww, wh = warped.shape[1], warped.shape[0]
-                if ww >= w * 0.70 and wh >= h * 0.70:
-                    return _cv_to_pil(warped)
-        return _trim_white_border(img)
-    except Exception:
-        return img
+                doc_contour = approx
+                break
 
+        if doc_contour is None:
+            return _trim_borders(img)
 
-def _trim_white_border(img: Image.Image) -> Image.Image:
-    try:
-        arr      = np.array(img.convert("L"))
-        row_mask = np.any(arr < 240, axis=1)
-        col_mask = np.any(arr < 240, axis=0)
-        if not row_mask.any() or not col_mask.any():
-            return img
-        r_min, r_max = np.where(row_mask)[0][[0, -1]]
-        c_min, c_max = np.where(col_mask)[0][[0, -1]]
-        margin = 20
-        iw, ih = img.size
-        c_min = max(0, c_min - margin)
-        r_min = max(0, r_min - margin)
-        c_max = min(iw, c_max + margin)
-        r_max = min(ih, r_max + margin)
-        if (c_min < iw * 0.02 and r_min < ih * 0.02 and
-                c_max > iw * 0.98 and r_max > ih * 0.98):
-            return img
-        cropped = img.crop((c_min, r_min, c_max, r_max))
-        cw, ch  = cropped.size
-        if cw < iw * 0.80 or ch < ih * 0.80:
-            return img
-        return cropped
+        # Perspective transform
+        pts = doc_contour.reshape(4, 2).astype("float32")
+        warped = _four_point_transform(cv_img, pts)
+        return _cv_to_pil(warped)
+
     except Exception:
-        return img
+        return _trim_borders(img)
 
 
 def _enhance(img: Image.Image) -> Image.Image:
-    img = ImageEnhance.Contrast(img).enhance(1.3)
-    img = ImageEnhance.Sharpness(img).enhance(1.4)
-    img = ImageEnhance.Brightness(img).enhance(1.02)
+    """Increase contrast and sharpness for better OCR / readability."""
+    img = ImageEnhance.Contrast(img).enhance(1.4)
+    img = ImageEnhance.Sharpness(img).enhance(1.6)
+    img = ImageEnhance.Brightness(img).enhance(1.05)
     return img
 
 
@@ -140,6 +143,10 @@ def _to_jpeg_bytes(img: Image.Image) -> bytes:
     return buf.getvalue()
 
 
+# ──────────────────────────────────────────────────────────────────
+# UTILITIES
+# ──────────────────────────────────────────────────────────────────
+
 def _pil_to_cv(img: Image.Image):
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
@@ -148,26 +155,47 @@ def _cv_to_pil(cv_img) -> Image.Image:
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
 
+def _trim_borders(img: Image.Image) -> Image.Image:
+    """Simple border trim using PIL getbbox on grayscale."""
+    gray = img.convert("L")
+    inverted = Image.eval(gray, lambda p: 255 - p)
+    bbox = inverted.getbbox()
+    if bbox:
+        margin = 10
+        w, h = img.size
+        bbox = (
+            max(0, bbox[0] - margin),
+            max(0, bbox[1] - margin),
+            min(w, bbox[2] + margin),
+            min(h, bbox[3] + margin),
+        )
+        return img.crop(bbox)
+    return img
+
+
 def _order_points(pts):
     rect = np.zeros((4, 2), dtype="float32")
-    s    = pts.sum(axis=1)
-    rect[0] = pts[np.argmin(s)]
-    rect[2] = pts[np.argmax(s)]
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]   # top-left
+    rect[2] = pts[np.argmax(s)]   # bottom-right
     diff = np.diff(pts, axis=1)
-    rect[1] = pts[np.argmin(diff)]
-    rect[3] = pts[np.argmax(diff)]
+    rect[1] = pts[np.argmin(diff)]  # top-right
+    rect[3] = pts[np.argmax(diff)]  # bottom-left
     return rect
 
 
 def _four_point_transform(image, pts):
-    rect  = _order_points(pts)
+    rect = _order_points(pts)
     tl, tr, br, bl = rect
-    wA    = np.linalg.norm(br - bl)
-    wB    = np.linalg.norm(tr - tl)
+
+    wA = np.linalg.norm(br - bl)
+    wB = np.linalg.norm(tr - tl)
     max_w = max(int(wA), int(wB))
-    hA    = np.linalg.norm(tr - br)
-    hB    = np.linalg.norm(tl - bl)
+
+    hA = np.linalg.norm(tr - br)
+    hB = np.linalg.norm(tl - bl)
     max_h = max(int(hA), int(hB))
-    dst   = np.array([[0,0],[max_w-1,0],[max_w-1,max_h-1],[0,max_h-1]], dtype="float32")
-    M     = cv2.getPerspectiveTransform(rect, dst)
+
+    dst = np.array([[0,0],[max_w-1,0],[max_w-1,max_h-1],[0,max_h-1]], dtype="float32")
+    M = cv2.getPerspectiveTransform(rect, dst)
     return cv2.warpPerspective(image, M, (max_w, max_h))

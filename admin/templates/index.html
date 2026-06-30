@@ -147,30 +147,120 @@
 
     <!-- ── APPLICATIONS ──────────────────────────────────────── -->
     <div id="page-applications" class="p-8 hidden">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Applications</h2>
-        <select id="filterStatus" onchange="loadApplications()"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">All Status</option>
-          <option value="incomplete">Incomplete</option>
-          <option value="complete">Complete</option>
-          <option value="exported">Exported</option>
-        </select>
+
+      <!-- LIST VIEW -->
+      <div id="apps-list-view">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">Applications</h2>
+          <select id="filterStatus" onchange="loadApplications()"
+            class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Status</option>
+            <option value="incomplete">Incomplete</option>
+            <option value="complete">Complete</option>
+            <option value="exported">Exported</option>
+          </select>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">App ID</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Applicant</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Phone</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Loan Type</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Created</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="applicationsBody"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table class="w-full text-sm">
-          <thead class="bg-gray-50 border-b">
-            <tr>
-              <th class="text-left px-4 py-3 font-semibold text-gray-600">App ID</th>
-              <th class="text-left px-4 py-3 font-semibold text-gray-600">Applicant</th>
-              <th class="text-left px-4 py-3 font-semibold text-gray-600">Loan Type</th>
-              <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-              <th class="text-left px-4 py-3 font-semibold text-gray-600">Created</th>
-              <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="applicationsBody"></tbody>
-        </table>
+
+      <!-- DETAIL VIEW -->
+      <div id="apps-detail-view" class="hidden">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-6 flex-wrap">
+          <button onclick="closeAppDetail()" class="text-gray-500 hover:text-gray-800 text-sm flex items-center gap-1 bg-white border rounded-lg px-3 py-2 transition">← Back</button>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800" id="det-appid">—</h2>
+            <p class="text-gray-400 text-xs" id="det-meta">—</p>
+          </div>
+          <div class="ml-auto flex gap-2 flex-wrap">
+            <span id="det-status-badge" class="text-xs px-3 py-1.5 rounded-full font-bold"></span>
+            <button onclick="downloadAppPdf()" class="text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition">📄 PDF</button>
+            <button onclick="deleteAppFromDetail()" class="text-sm bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg font-medium transition">Delete</button>
+          </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div class="bg-white rounded-xl border p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Applicant</p>
+            <p id="det-name" class="font-bold text-gray-800">—</p>
+          </div>
+          <div class="bg-white rounded-xl border p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Mobile</p>
+            <p id="det-phone" class="font-bold text-gray-800">—</p>
+          </div>
+          <div class="bg-white rounded-xl border p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Email</p>
+            <p id="det-email" class="font-bold text-gray-800 text-sm">—</p>
+          </div>
+          <div class="bg-white rounded-xl border p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Loan Type</p>
+            <p id="det-ltype" class="font-bold text-gray-800">—</p>
+          </div>
+        </div>
+
+        <!-- Extracted Key Fields — 3 columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+          <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+            <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">🪪 Identity Documents</p>
+            <div id="det-identity" class="space-y-2 text-sm"></div>
+          </div>
+          <div class="bg-green-50 rounded-xl p-4 border border-green-100">
+            <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-3">💰 Income / Financial</p>
+            <div id="det-financial" class="space-y-2 text-sm"></div>
+          </div>
+          <div class="bg-purple-50 rounded-xl p-4 border border-purple-100">
+            <p class="text-xs font-bold text-purple-700 uppercase tracking-wide mb-3">🏦 Bank Details</p>
+            <div id="det-bank" class="space-y-2 text-sm"></div>
+          </div>
+        </div>
+
+        <!-- Checklist -->
+        <div class="bg-white rounded-xl border shadow-sm p-5 mb-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-gray-700">📋 Document Checklist</h3>
+            <div class="flex items-center gap-3">
+              <div class="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div id="det-prog-bar" class="h-full bg-blue-500 rounded-full transition-all" style="width:0%"></div>
+              </div>
+              <span id="det-prog-pct" class="text-sm font-bold text-gray-600">0%</span>
+            </div>
+          </div>
+          <div id="det-checklist" class="grid grid-cols-1 lg:grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- All Document Fields -->
+        <div class="bg-white rounded-xl border shadow-sm p-5">
+          <h3 class="font-bold text-gray-700 mb-4">📄 All Extracted Fields by Document</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">Document</th>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">AI Confidence</th>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">Extracted Data</th>
+                  <th class="text-left px-4 py-3 font-semibold text-gray-600">Uploaded</th>
+                </tr>
+              </thead>
+              <tbody id="det-docs-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -567,21 +657,164 @@ async function saveDocMaster(id){
 }
 
 // ── APPLICATIONS ──────────────────────────────────────────────────
+let _currentDetailId = '';
+
 async function loadApplications(){
   const status = document.getElementById('filterStatus')?.value||'';
   const data = await api(`/applications?limit=100${status?'&status='+status:''}`);
-  const colors = {incomplete:'bg-orange-100 text-orange-700',complete:'bg-green-100 text-green-700',exported:'bg-purple-100 text-purple-700'};
+  const colors = {
+    incomplete:'bg-orange-100 text-orange-700',
+    complete:'bg-green-100 text-green-700',
+    exported:'bg-purple-100 text-purple-700'
+  };
   document.getElementById('applicationsBody').innerHTML = (data?.applications||[]).map(a=>`
-    <tr class="border-b hover:bg-gray-50">
+    <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="openAppDetail('${esc(a.id)}')">
       <td class="px-4 py-3 font-mono text-sm font-medium text-blue-700">${esc(a.id)}</td>
-      <td class="px-4 py-3 text-sm">${esc(a.applicant_name||'—')}</td>
+      <td class="px-4 py-3 text-sm font-medium">${esc(a.applicant_name||'—')}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${esc(a.applicant_phone||'—')}</td>
       <td class="px-4 py-3 text-sm text-gray-600">${esc(a.loan_type)}</td>
       <td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded font-medium ${colors[a.status]||'bg-gray-100 text-gray-600'}">${a.status}</span></td>
       <td class="px-4 py-3 text-sm text-gray-500">${new Date(a.created_at).toLocaleDateString('en-IN')}</td>
-      <td class="px-4 py-3">
+      <td class="px-4 py-3" onclick="event.stopPropagation()">
         <button onclick="deleteApp('${esc(a.id)}')" class="btn-sm" style="background:#fff1f2;color:#be123c">Delete</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="6" class="text-center py-10 text-gray-400">No applications found</td></tr>';
+    </tr>`).join('') || `<tr><td colspan="7" class="text-center py-10 text-gray-400">No applications found</td></tr>`;
+}
+
+async function openAppDetail(id){
+  _currentDetailId = id;
+  document.getElementById('apps-list-view').classList.add('hidden');
+  document.getElementById('apps-detail-view').classList.remove('hidden');
+
+  // Load full detail
+  const d = await api(`/applications/${id}`);
+  if(!d){ alert('Could not load application'); return; }
+
+  // Header
+  document.getElementById('det-appid').textContent = d.id;
+  document.getElementById('det-meta').textContent =
+    `Created: ${new Date(d.created_at).toLocaleString('en-IN')} · ${d.loan_type_name}`;
+
+  const statusColors = {
+    incomplete:'background:#fff7ed;color:#c2410c',
+    complete:'background:#f0fdf4;color:#15803d',
+    exported:'background:#f5f3ff;color:#7c3aed'
+  };
+  const badge = document.getElementById('det-status-badge');
+  badge.textContent = d.status.toUpperCase();
+  badge.style.cssText = statusColors[d.status]||'background:#f3f4f6;color:#374151';
+
+  // Info cards
+  document.getElementById('det-name').textContent  = d.applicant_name  || '—';
+  document.getElementById('det-phone').textContent = d.applicant_phone || '—';
+  document.getElementById('det-email').textContent = d.applicant_email || '—';
+  document.getElementById('det-ltype').textContent = d.loan_type_name  || d.loan_type_code;
+
+  // Aggregated fields helper
+  const agg = d.aggregated_fields || {};
+  function fieldRow(label, val){
+    if(!val) return '';
+    return `<div class="flex justify-between items-start gap-2 py-1.5 border-b border-white/60 last:border-0">
+      <span class="text-gray-500 text-xs">${label}</span>
+      <span class="font-semibold text-xs text-right text-gray-800">${esc(val)}</span>
+    </div>`;
+  }
+
+  // Identity block
+  document.getElementById('det-identity').innerHTML =
+    fieldRow('Name (AI)',      agg.name) ||
+    fieldRow('DOB',            agg.dob) +
+    fieldRow('Gender',         agg.gender) +
+    fieldRow('Aadhaar',        agg.aadhaar_number) +
+    fieldRow('PAN',            agg.pan_number) +
+    fieldRow('Address',        agg.address) +
+    fieldRow('PIN Code',       agg.pin_code) ||
+    '<p class="text-xs text-gray-400">No identity docs uploaded yet</p>';
+
+  // Financial block
+  document.getElementById('det-financial').innerHTML =
+    fieldRow('Net Salary',     agg.net_salary) +
+    fieldRow('Gross Salary',   agg.gross_salary) +
+    fieldRow('Company',        agg.company_name) +
+    fieldRow('Total Income',   agg.total_income) +
+    fieldRow('Asst. Year',     agg.assessment_year) ||
+    '<p class="text-xs text-gray-400">No income docs uploaded yet</p>';
+
+  // Bank block
+  document.getElementById('det-bank').innerHTML =
+    fieldRow('Account Holder', agg.account_holder) +
+    fieldRow('Account No.',    agg.account_number) +
+    fieldRow('Bank Name',      agg.bank_name) +
+    fieldRow('IFSC',           agg.ifsc) +
+    fieldRow('Avg Balance',    agg.average_balance) ||
+    '<p class="text-xs text-gray-400">No bank docs uploaded yet</p>';
+
+  // Checklist
+  const cl = d.checklist || {};
+  const pct = cl.completion_percent || 0;
+  document.getElementById('det-prog-bar').style.width = pct + '%';
+  document.getElementById('det-prog-pct').textContent = pct + '%';
+  document.getElementById('det-checklist').innerHTML = (cl.document_status||[]).map(ds=>`
+    <div class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${ds.status==='uploaded'?'bg-green-50 text-green-800':'bg-orange-50 text-orange-800'}">
+      <span>${ds.status==='uploaded'?'✅':'📭'}</span>
+      <span class="flex-1 font-medium">${esc(ds.display_name)}</span>
+      <span class="text-xs font-bold">${ds.status==='uploaded'?'✓':'Missing'}</span>
+    </div>`).join('');
+
+  // Documents table
+  document.getElementById('det-docs-body').innerHTML = (d.documents||[]).map(doc=>{
+    const fields = doc.extracted_fields || {};
+    const rows = Object.entries(fields)
+      .filter(([k])=>!k.startsWith('_'))
+      .map(([k,v])=>`<div class="flex gap-2 text-xs py-0.5">
+        <span class="text-gray-400 min-w-[100px]">${k.replace(/_/g,' ')}:</span>
+        <span class="font-semibold text-gray-700">${esc(String(v||'—'))}</span>
+      </div>`).join('');
+    const conf = Math.round((doc.confidence_score||0)*100);
+    const confColor = conf>=80?'text-green-600':conf>=50?'text-orange-500':'text-red-500';
+    return `<tr class="border-b hover:bg-gray-50">
+      <td class="px-4 py-3 font-medium text-sm">${esc(doc.doc_display_name)}</td>
+      <td class="px-4 py-3">
+        <span class="font-bold text-sm ${confColor}">${conf}%</span>
+        <div class="w-16 h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden">
+          <div class="h-full rounded-full" style="width:${conf}%;background:${conf>=80?'#16a34a':conf>=50?'#f59e0b':'#dc2626'}"></div>
+        </div>
+      </td>
+      <td class="px-4 py-3">${rows||'<span class="text-gray-400 text-xs">No fields</span>'}</td>
+      <td class="px-4 py-3 text-xs text-gray-400">${new Date(doc.uploaded_at).toLocaleString('en-IN')}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" class="text-center py-8 text-gray-400">No documents uploaded</td></tr>';
+}
+
+function closeAppDetail(){
+  _currentDetailId = '';
+  document.getElementById('apps-detail-view').classList.add('hidden');
+  document.getElementById('apps-list-view').classList.remove('hidden');
+}
+
+async function downloadAppPdf(){
+  if(!_currentDetailId) return;
+  try {
+    const r = await fetch(`/admin/api/applications/${_currentDetailId}/pdf`,{
+      headers:{'Authorization':'Bearer '+TOKEN}
+    });
+    if(!r.ok) throw await r.text();
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`${_currentDetailId}_documents.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch(e){ alert('PDF download failed. Telegram configured hai? '+e); }
+}
+
+async function _getAnyApiKey(){ return ''; }
+
+async function deleteAppFromDetail(){
+  if(!confirm(`Delete application ${_currentDetailId}?`)) return;
+  await api(`/applications/${_currentDetailId}`,{method:'DELETE'});
+  closeAppDetail();
+  loadApplications();
 }
 
 async function deleteApp(id){
